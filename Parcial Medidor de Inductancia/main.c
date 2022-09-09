@@ -109,31 +109,29 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(1==(HAL_GPIO_ReadPin(PULSADOR_GPIO_Port,PULSADOR_Pin)))
-	  	  	  	 {
-	  	  	  		 lcd_put_cur(0, 0);
-	  	  	  		 lcd_send_string("Esperando medida");
-	  	  	  		 lcd_put_cur(1, 0);
-	  	  	  		 lcd_send_string("Pulse el boton");
-	  	  	  	 }else{
-	  	  	  		 HAL_GPIO_WritePin(PULSO_GPIO_Port,PULSO_Pin,1);
-	  	  	  		 HAL_Delay(10);
-	  	  	  		 HAL_GPIO_WritePin(PULSO_GPIO_Port,PULSO_Pin,1);
-	  	  	  		 HAL_Delay(10);
-	  	  	  		 lcd_clear();
-	  	  	  		 lcd_put_cur(0, 4);
-	  	  	  		 lcd_send_string("Midiendo");
-	  	  	  		 HAL_Delay(1000);
-	  	  	  		 lcd_put_cur(1, 5);
-	  	  	  		 lcd_send_string("Listo!");
-	  	  	  		 HAL_Delay(1000);
-	  	  	  		 lcd_clear();
-	  	  	  		 lcd_put_cur(0, 0);
-	  	  	  		 fs=(uint32_t)(F_CLK/pasos);
-	  	  	  		 il=1/(4*(3.141592* 3.141592)*(fs*fs)*(0.000001))*1000000;
-	  	  	  		 lcd_print_induc(il);
-	  	  	  		 HAL_Delay(10000);
-	  	  	  	 }
+	  if(0==(HAL_GPIO_ReadPin(PULSADOR_GPIO_Port,PULSADOR_Pin)))
+	  {
+	  	 lcd_put_cur(0, 0);
+	  	 lcd_send_string("ESPERANDO MEDIDA");
+	  	 lcd_put_cur(1, 1);
+	  	 lcd_send_string("PULSE EL BOTON");
+	   }else{
+		   HAL_GPIO_WritePin(PULSO_GPIO_Port,PULSO_Pin,1);
+	  	   HAL_Delay(10);
+	  	   HAL_GPIO_WritePin(PULSO_GPIO_Port,PULSO_Pin,1);
+	  	   HAL_Delay(10);
+	  	   lcd_clear();
+	  	   lcd_put_cur(0, 1);
+	  	   lcd_send_string("...Midiendo...");
+	  	   HAL_Delay(2000);
+	  	   lcd_put_cur(1, 5);
+	  	   lcd_send_string("Listo!");
+	  	   HAL_Delay(1000);
+	  	   fs=(uint32_t)(F_CLK/pasos);
+	  	   il=1/(4*(3.141592* 3.141592)*(fs*fs)*(0.000001))*1000000;
+	  	   lcd_print_induc(il);
+	  	   HAL_Delay(10000);
+	   }
 
     /* USER CODE END WHILE */
 
@@ -437,9 +435,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void lcd_print_induc(uint32_t xx)
 {
 	uint32_t p=0;
-	clean_row(0);
+	lcd_clear();
 	lcd_put_cur(0, 0);
-	lcd_send_string("L:");
+	lcd_send_string("INDUCTANCIA (L)");
+	lcd_put_cur(1, 6);
 	if((xx>0.001)&&(xx<0.999))
 	{
 		p=xx*1000;
