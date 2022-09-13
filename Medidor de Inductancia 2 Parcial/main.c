@@ -112,30 +112,30 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(0==(HAL_GPIO_ReadPin(USUARIO_GPIO_Port,USUARIO_Pin)))
+	  if(0==(HAL_GPIO_ReadPin(USUARIO_GPIO_Port,USUARIO_Pin))) //Condición de estado para medición o espera
 	  {
-		  lcd_put_cur(0, 2);
-		  lcd_send_string("PARA MEDIR L");
-		  lcd_put_cur(1, 1);
-		  lcd_send_string("PULSE EL BOTON");
-		  lcd_put_cur(0, 0);
+		  lcd_put_cur(0, 2); //posicionamiento del cursor para una optima visualización
+		  lcd_send_string("PARA MEDIR L"); // Frase informativa impresa en el LCD
+		  lcd_put_cur(1, 1); //posicionamiento del cursor para una optima visualización
+		  lcd_send_string("PULSE EL BOTON"); // Frase informativa impresa en el LCD
+
 	  }else{
 		  HAL_GPIO_WritePin(PULSO_GPIO_Port,PULSO_Pin,1);
 		  HAL_Delay(10);
 		  HAL_GPIO_WritePin(PULSO_GPIO_Port,PULSO_Pin,0);
-		  HAL_Delay(10);
-		  lcd_clear();
-		  lcd_put_cur(0, 1);
-		  lcd_send_string("...Midiendo...");
-		  HAL_Delay(2000);
-		  lcd_put_cur(1, 5);
-		  lcd_send_string("Listo!");
-		  HAL_Delay(1000);
-		  fs=(uint32_t)(F_CLK/pasos);
-		  il=1/(4*(3.141592* 3.141592)*(fs*fs)*(0.000001))*1000000;
-		  lcd_print_induc(il);
-		  HAL_Delay(10000);
-		  lcd_clear();
+		  HAL_Delay(10); //Emision del pulso para generar la señal de medición
+		  lcd_clear(); //limpiar el LCD
+		  lcd_put_cur(0, 1); //posicionamiento del cursor para una optima visualización
+		  lcd_send_string("...Midiendo..."); //Frase informativa impresa en el LCD
+		  HAL_Delay(2000); //Tiempo de espera en el proceso para un desarrollo sin saturación
+		  lcd_put_cur(1, 5); //posicionamiento del cursor para una optima visualización
+		  lcd_send_string("Listo!"); // Frase informativa impresa en el LCD
+		  HAL_Delay(1000); //Tiempo de espera en el proceso para un desarrollo sin saturación
+		  fs=(uint32_t)(F_CLK/pasos); //Calculo de la frecuencia de la señal ingresada utilizando la información del TIM
+		  il=1/(4*(3.141592* 3.141592)*(fs*fs)*(0.000001))*1000000; //Calculo de la inductancia despejando su valor a partir de una formula de comportamiento en un circuito tanque
+		  lcd_print_induc(il); //llamado a la funcion adapatada para la impresión de la inductancia en el LCD
+		  HAL_Delay(10000); //Tiempo de espera en el proceso para un desarrollo sin saturación
+		  lcd_clear(); // limpiar el LCD
 	  }
 
     /* USER CODE END WHILE */
