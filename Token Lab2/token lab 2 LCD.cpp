@@ -52,3 +52,116 @@ void imprimeCuadrado() //Funcion de impresion de un cuadrado blanco en la pantal
 		if(0==(i%10))printf("\n"); //salto de linea para delimitar el ancho del cuadro
 	}
 }
+
+/*
+#include <windows.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+
+
+void EscribirSerie(HANDLE idComDev, char *buf);
+
+struct timeval stop,start;
+unsigned long tiempo;
+unsigned long ingreso=0;
+unsigned long clave = 0xF49DC57D;
+unsigned long token;
+unsigned long tp=30000;
+
+	
+int main(){
+	
+	HANDLE Com;
+	char claved[8];
+	int clave;
+	char act[25]="b";
+	COMMTIMEOUTS m_CommTimeouts;
+	DCB dcb;
+	BOOL fSuccess;
+	
+	
+
+	Com = CreateFileA("COM3", GENERIC_READ | GENERIC_WRITE,0, NULL, OPEN_EXISTING, 0, NULL);
+	if (Com == INVALID_HANDLE_VALUE){
+		printf("\nError! - Port can't be opened");
+	}else{
+		printf("\nPort %s Opened\n");
+		
+	}	
+	
+	fSuccess = GetCommState(Com, &dcb);
+	
+	dcb.BaudRate = CBR_9600;
+	dcb.ByteSize = 8;
+	dcb.Parity = NOPARITY;
+	dcb.StopBits = ONESTOPBIT;
+	dcb.fBinary = FALSE;
+	dcb.fAbortOnError = TRUE;
+
+	SetCommState(Com, &dcb);
+	
+	// Leer time-outs actuales  ab se prende b se apaga
+	
+    GetCommTimeouts(Com, &m_CommTimeouts);
+
+	// Nuevos valores de timeout:
+    m_CommTimeouts.ReadIntervalTimeout = 50;
+	m_CommTimeouts.ReadTotalTimeoutConstant = 50;
+	m_CommTimeouts.ReadTotalTimeoutMultiplier = 10;
+	m_CommTimeouts.WriteTotalTimeoutConstant = 50;
+	m_CommTimeouts.WriteTotalTimeoutMultiplier = 10;
+
+	// Establecer timeouts:
+	SetCommTimeouts (Com, &m_CommTimeouts);
+
+	//Mandamos la clave
+	
+	
+	printf("Digite su clave para el token\n");
+	//EscribirSerie(Com,clave);
+	scanf("%s",&act);
+	EscribirSerie(Com,act);
+	clave=atoi(claved);
+	
+	//printf("\nLa clave digitada fue %s\n",act);
+	
+	/*printf("Pulse enter para sincronizar... ");
+	getchar();
+	EscribirSerie(Com,act);
+	gettimeofday(&start,NULL);
+	printf("Ingresa el Token:\n");
+	while(1){
+		gettimeofday(&stop,NULL);
+		tiempo=((stop.tv_sec - start.tv_sec)*1000000+stop.tv_usec-start.tv_usec);
+		tiempo/=1000.0;
+		if(tiempo>=tp){ //si el tiempo es mayor a 30000ms tp cambia su rango
+            tp=tp+30000;
+		}else{
+		    scanf("%lX",&ingreso);
+		}
+		token = clave^tp;
+		if(ingreso==token){
+			printf("Acceso Concedido\n");
+			printf("Ingresa un nuevo Token:\n");
+		}else{
+			printf("Acceso Denegado ");
+			printf("Ingresa el Token:\n");
+		}
+	}
+		
+		
+	CloseHandle(Com);
+	return 0;
+}
+
+void EscribirSerie(HANDLE idComDev, char *buf)
+{
+    char oBuffer[256];  /* Buffer de salida 
+    DWORD iBytesWritten;
+
+    iBytesWritten = 0;
+    strcpy(oBuffer, buf);
+    WriteFile(idComDev, oBuffer, strlen(oBuffer), &iBytesWritten, NULL);
+}*/
+
