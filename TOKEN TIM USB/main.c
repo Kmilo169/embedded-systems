@@ -43,7 +43,7 @@
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-volatile int seg=0;
+volatile int seg=0,h=0,m=0;
 uint32_t cambio=0;
 int a=0,b=0;
 unsigned long long token1=0x16C09C19;
@@ -61,6 +61,7 @@ void lcd_clear();
 void lcd_put_cur(char row, char col);
 void lcd_send_string (char *str);
 void lcd_send_char_hod(unsigned long long xx, char hod);
+void imprimirhora(int s, int m, int h);
 /* @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
 */
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
@@ -111,7 +112,24 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(cambio==0) // Condición que mantiene en el inicio
+	  if(seg==60)
+	  {
+		  seg=0;
+		  m++;
+	  }
+	  if(m==60)
+	  {
+		  m=0;
+		  h++;
+	  }
+	  if(h==24)
+	  {
+		  h=0;
+	  }
+	  imprimirhora(seg,m,h);
+
+
+	  /*if(cambio==0) // Condición que mantiene en el inicio
 	  	  	  {
 	  	  		  if(xx==0) // Comparacion para seguir esperando sincronización o activar el conteo de 30 seg
 	  	  		  {
@@ -147,7 +165,7 @@ int main(void)
 	  	  			  seg=0;
 	  	  			  cambio++;
 	  	  		  }
-	  	  	  }
+	  	  	  }*/
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -415,6 +433,61 @@ void lcd_send_char_hod(unsigned long long xx, char hod)
 	}
 }
 
+void imprimirhora(int s, int m, int h)
+{
+	lcd_put_cur(0,4);
+	if(h<10)
+	{
+		if(h==0)
+		{
+			fx('0', 1);
+			fx('0', 1);
+		}
+		else
+		{
+			fx('0', 1);
+			lcd_send_char_hod(h,1);
+		}
+	}
+	else{
+		lcd_send_char_hod(h,1);
+	}
+	fx(':', 1);
+	if(m<10)
+		{
+		if(m==0)
+				{
+					fx('0', 1);
+					fx('0', 1);
+				}
+				else
+				{
+					fx('0', 1);
+					lcd_send_char_hod(m,1);
+				}
+		}
+		else{
+			lcd_send_char_hod(m,1);
+		}
+		fx(':', 1);
+		if(s<10)
+			{
+			if(s==0)
+					{
+						fx('0', 1);
+						fx('0', 1);
+					}
+					else
+					{
+						fx('0', 1);
+						lcd_send_char_hod(s,1);
+					}
+			}
+			else{
+				lcd_send_char_hod(s,1);
+			}
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   seg++;
@@ -422,15 +495,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void funcioncita(uint8_t* bufito, uint32_t tamanito)
 {
-	if(bufito[0]=='a')
+	h=bufito[0];
+	m=bufito[1];
+	seg=bufito[2];
+	/*if(bufito[0]!='a')  //  CHECKSUM OPERACION NO CONVERGENTE
 	{
-		HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 1);
-		xx=1;
-	}else if(bufito[0]=='b')
+		token1=atoi(bufito);
+	}else if(bufito[0]=='a')
 	{
-		HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 0);
-		xx=0;
-	}
+		if(bufito[0]=='a')
+		{
+			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 1);
+			xx=1;
+		}else if(bufito[0]=='b')
+		{
+			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 0);
+			xx=0;
+		}
+	}*/
 }
 
 /* USER CODE END 4 */
