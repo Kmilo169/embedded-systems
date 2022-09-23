@@ -7,18 +7,16 @@ void EscribirSerie(HANDLE idComDev, char *buf);
 
 struct timeval stop,start; 
 unsigned long long tiempo,r=0; 
-unsigned long clave = 0x16C09C19/*clave original de inicializacion*/,tokenLocal=0; 
-int m=0;
-char ok=0;
-int tempE=0;
+unsigned long clave = 0x16C09C19/*clave original de inicializacion*/,tokenLocal=0;
+int tempE=0,opcion=0,m=0;
 double temp=0;
+char ok=0,k=0,xx[25]="b",hora[3]="0",tok[4]="0",tb=0;
 
 
 int main()
 {
 	
 	HANDLE Com;
-	char xx[25]="b";
 	COMMTIMEOUTS m_CommTimeouts;
 	DCB dcb;
 	BOOL fSuccess;
@@ -57,6 +55,16 @@ int main()
 	// Establecer timeouts:
 	SetCommTimeouts (Com, &m_CommTimeouts);
 	
+	while(ok==0)
+	{
+			printf("Digite la opcion que desea realizar \n");
+	printf("1. Sincronizar hora \n");
+	printf("2. Cambiar clave \n");
+	scanf("%i", &opcion);
+	switch(opcion)
+	{
+		case 1: 
+		printf("Tu respuesta: %i. Sincronizar hora \n",opcion);
 		gettimeofday(&start,NULL); //Medida de tiempo incial 
 		tiempo=start.tv_sec-1641013200;
 		temp=(double)tiempo/86400;
@@ -64,27 +72,52 @@ int main()
 		temp=temp-tempE;
 		temp=temp*24;
 		tempE=(int)temp;
-		xx[0]=tempE;
+		hora[0]=tempE;
 		temp=temp-tempE;
 		temp=temp*60;
 		tempE=(int)temp;
-		xx[1]=tempE;
+		hora[1]=tempE;
 		temp=temp-tempE;
 		temp=temp*60;
 		tempE=(int)temp;
-		xx[2]=tempE;
-		
+		hora[2]=tempE;
+		xx[0]=0x16;
+		xx[1]=0x07;
+		xx[2]=0x40;
+		for(k=0;k<3;k++)
+		{
+			xx[k+3]=hora[k];
+		}			
+		xx[6]=0x19;
 		EscribirSerie(Com,xx);
-	
-	printf("Digite la clave >> ");
-	scanf("%08X",&clave);
-	itoa(clave,xx,10);
-	EscribirSerie(Com,xx);
-	
-	printf("Digite a para sincronizar >> ");
-	scanf("%s",&xx);
-	EscribirSerie(Com,xx);
-	
+		ok=1;
+		break;
+		case 2:
+			printf("Tu repuesta: %i. Cambiar clave \n",opcion);
+			printf("Digite la clave >> ");
+			scanf("%08X",&clave);
+			for(k=0;k<4;k++)
+			{
+				tok[k]=(clave>>(24-(k*8))&0X000000FF);
+			}
+			xx[0]=0x16;
+			xx[1]=0x08;
+			xx[2]=0x80;
+			for(k=0;k<4;k++)
+			{
+				xx[k+3]=tok[k];
+			}
+				
+			EscribirSerie(Com,xx);
+			ok=0;
+		break;
+		default:
+			printf("Digite una opcion valida. :/ \n");
+			ok=0;
+		break;
+		}
+	}
+	ok=0;
 	while(ok==0)
 	{
 	gettimeofday(&start,NULL); //Medida de tiempo incial 

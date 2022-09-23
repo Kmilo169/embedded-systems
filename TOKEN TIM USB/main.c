@@ -43,11 +43,12 @@
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-volatile int seg=0,h=0,m=0;
+volatile int seg=0,h=0,m=0,tp=0;
 uint32_t cambio=0;
 int a=0,b=0;
 unsigned long long token1=0x16C09C19;
-volatile char xx=0;
+volatile unsigned char contador=0,cs=0;
+volatile char xx=0,j=0,punto=0,referencia=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -112,60 +113,59 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  /*lcd_clear();
+	  lcd_send_char_hod(h, 0);
+	  lcd_put_cur(1, 0);
+	  lcd_send_char_hod(h, 1);
+	  HAL_Delay(1000);//*/
 	  if(seg==60)
 	  {
-		  seg=0;
-		  m++;
+			  m++;
+			  seg=0;
 	  }
 	  if(m==60)
 	  {
-		  m=0;
-		  h++;
+	      m=0;
+	      h++;
 	  }
 	  if(h==24)
 	  {
 		  h=0;
 	  }
 	  imprimirhora(seg,m,h);
-
-
-	  /*if(cambio==0) // Condición que mantiene en el inicio
+	  if(cambio==0) // Condición que mantiene en el inicio
 	  	  	  {
 	  	  		  if(xx==0) // Comparacion para seguir esperando sincronización o activar el conteo de 30 seg
 	  	  		  {
-	  	  			  lcd_put_cur(0, 3);
+	  	  			  lcd_put_cur(1, 3);
 	  	  			  lcd_send_string("ESPERANDO");			//Impresion de espera de sincronización
-	  	  			  lcd_put_cur(1, 1);					//            --
-	  	  			  lcd_send_string("SINCRONIZACION");	//            --
 	  	  		  }
 	  	  		  else
 	  	  		  {
-	  	  			  lcd_clear();
-	  	  			  lcd_put_cur(0, 2);
+	  	  			  lcd_put_cur(1, 2);
 	  	  			  lcd_send_string("SINCRONIZADO");     //Ejecucion de inicio del conteo de 30 seg
 	  	  			  HAL_Delay(1000);
-	  	  			  lcd_clear();
 	  	  			  cambio=1;
-	  	  			  seg=1;
+	  	  			  seg++;
 	  	  			 // Salida del bucle de sincronización
 	  	  		  }
 	  	  	  }
 	  	  	  else
 	  	  	  {
-
-	  	  		  if(cambio==1)		//Impresión del titulo "Token Temporal"
+	  	  		  lcd_put_cur(1, 0);
+	  	  		  lcd_send_string("TOKEN: ");
+	  	  		  if(j==0)
 	  	  		  {
-	  	  			  lcd_put_cur(0,1);
-	  	  			  lcd_send_string("TOKEN TEMPORAL");
+	  	  			  cambio=1;
 	  	  		  }
-	  	  		  lcd_put_cur(1,4); //Posicionamiento del token
+	  	  		  else{
+	  	  			if(punto==referencia){
+	  	  				  punto=referencia-30;
+	  	  				  cambio++;
+	  	  			}
+	  	  		  }
 	  	  		  lcd_send_char_hod(token1^((cambio-1)*30000),0); //Funcion para generación de un nuevo token cada 30 seg dependiendo de la cantidad de ciclos pasados
-	  	  		  if(seg==30)
-	  	  		  {
-	  	  			  seg=0;
-	  	  			  cambio++;
-	  	  		  }
-	  	  	  }*/
+	  	  	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -487,31 +487,71 @@ void imprimirhora(int s, int m, int h)
 				lcd_send_char_hod(s,1);
 			}
 }
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   seg++;
+  punto++;
 }
 
 void funcioncita(uint8_t* bufito, uint32_t tamanito)
 {
-	h=bufito[0];
-	m=bufito[1];
-	seg=bufito[2];
-	/*if(bufito[0]!='a')  //  CHECKSUM OPERACION NO CONVERGENTE
-	{
-		token1=atoi(bufito);
-	}else if(bufito[0]=='a')
-	{
-		if(bufito[0]=='a')
+	//h=bufito[3];
+	tp=bufito[1];
+		switch(bufito[2])
 		{
-			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 1);
-			xx=1;
-		}else if(bufito[0]=='b')
-		{
-			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 0);
-			xx=0;
+			case 0x40:
+				h=bufito[3];
+				m=bufito[4];
+				seg=bufito[5];
+				punto=bufito[5];
+				referencia=punto+30;
+				j=1;
+				xx=1;
+			break;
+			case 0x80:
+				token1=((bufito[3]<<24)&0xFF000000)|((bufito[4]<<16)&0xFF0000)|((bufito[5]<<8)&0xFF00)|(bufito[6]&0XFF);
+			break;
+			default:
+				HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+			break;
 		}
+	/*if(bufito[3]==0x40)
+	{
+		h=bufito[0];
+		m=bufito[1];
+		seg=bufito[2];
+		punto=bufito[2];
+		referencia=punto+30;
+		j=1;
+		xx=1;
+	}else if(bufito[3]==0x80){
+		token1=((bufito[4]<<24)&0xFF000000)|((bufito[5]<<16)&0xFF0000)|((bufito[6]<<8)&0xFF00)|(bufito[7]);
+	}else{
+		lcd_clear();
+		HAL_Delay(1000);
+		lcd_send_string("Que asco");
+		HAL_Delay(2000);
+	}*/
+
+	/*switch(bufito[3])
+			{
+				case 0x40:
+
+				break;
+				case 0x80:
+
+				break;
+				default:
+					HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+				break;
+			}*/
+	/*if(cs==bufito[tp-2])
+	{
+
+	}
+	else
+	{
+		HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
 	}*/
 }
 
