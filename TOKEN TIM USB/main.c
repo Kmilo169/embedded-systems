@@ -45,10 +45,9 @@ TIM_HandleTypeDef htim2;
 /* USER CODE BEGIN PV */
 volatile int seg=0,h=0,m=0,tp=0;
 uint32_t cambio=0;
-int a=0,b=0;
 unsigned long long token1=0x16C09C19;
-volatile unsigned char contador=0,cs=0;
 volatile char xx=0,j=0,punto=0,referencia=0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,6 +62,7 @@ void lcd_put_cur(char row, char col);
 void lcd_send_string (char *str);
 void lcd_send_char_hod(unsigned long long xx, char hod);
 void imprimirhora(int s, int m, int h);
+void sendR(char w);
 /* @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
 */
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
@@ -113,11 +113,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /*lcd_clear();
-	  lcd_send_char_hod(h, 0);
-	  lcd_put_cur(1, 0);
-	  lcd_send_char_hod(h, 1);
-	  HAL_Delay(1000);//*/
 	  if(seg==60)
 	  {
 			  m++;
@@ -137,8 +132,8 @@ int main(void)
 	  	  	  {
 	  	  		  if(xx==0) // Comparacion para seguir esperando sincronización o activar el conteo de 30 seg
 	  	  		  {
-	  	  			  lcd_put_cur(1, 3);
-	  	  			  lcd_send_string("ESPERANDO");			//Impresion de espera de sincronización
+	  	  			  lcd_put_cur(1, 2);
+	  	  			  lcd_send_string("Esperando S.");			//Impresion de espera de sincronización
 	  	  		  }
 	  	  		  else
 	  	  		  {
@@ -487,6 +482,24 @@ void imprimirhora(int s, int m, int h)
 				lcd_send_char_hod(s,1);
 			}
 }
+
+void sendR(char w)
+{
+	char *txt;
+	int ttxt=0;
+
+	if(w==0)
+	{
+		txt="OK";
+	}
+	else
+	{
+		txt="BAD";
+	}
+	ttxt=strlen(txt);
+	CDC_Transmit_FS(txt, ttxt);
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   seg++;
@@ -495,7 +508,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void funcioncita(uint8_t* bufito, uint32_t tamanito)
 {
-	//h=bufito[3];
+	char recep=0;
 	tp=bufito[1];
 		switch(bufito[2])
 		{
@@ -507,52 +520,17 @@ void funcioncita(uint8_t* bufito, uint32_t tamanito)
 				referencia=punto+30;
 				j=1;
 				xx=1;
+				recep=0;
 			break;
 			case 0x80:
 				token1=((bufito[3]<<24)&0xFF000000)|((bufito[4]<<16)&0xFF0000)|((bufito[5]<<8)&0xFF00)|(bufito[6]&0XFF);
+				recep=0;
 			break;
 			default:
-				HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+				recep=1;
 			break;
 		}
-	/*if(bufito[3]==0x40)
-	{
-		h=bufito[0];
-		m=bufito[1];
-		seg=bufito[2];
-		punto=bufito[2];
-		referencia=punto+30;
-		j=1;
-		xx=1;
-	}else if(bufito[3]==0x80){
-		token1=((bufito[4]<<24)&0xFF000000)|((bufito[5]<<16)&0xFF0000)|((bufito[6]<<8)&0xFF00)|(bufito[7]);
-	}else{
-		lcd_clear();
-		HAL_Delay(1000);
-		lcd_send_string("Que asco");
-		HAL_Delay(2000);
-	}*/
-
-	/*switch(bufito[3])
-			{
-				case 0x40:
-
-				break;
-				case 0x80:
-
-				break;
-				default:
-					HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-				break;
-			}*/
-	/*if(cs==bufito[tp-2])
-	{
-
-	}
-	else
-	{
-		HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-	}*/
+		sendR(recep);
 }
 
 /* USER CODE END 4 */

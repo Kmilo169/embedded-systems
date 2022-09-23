@@ -1,9 +1,10 @@
 #include <windows.h>
 #include <stdio.h>
+#include <conio.h>
 #include <string.h>
 #include <sys/time.h>
+#define    BUFFERLENGTH 256
 
-void EscribirSerie(HANDLE idComDev, char *buf);
 
 struct timeval stop,start; 
 unsigned long long tiempo,r=0; 
@@ -12,52 +13,86 @@ int tempE=0,opcion=0,m=0;
 double temp=0;
 char ok=0,k=0,xx[25]="b",hora[3]="0",tok[4]="0",tb=0;
 
-
-int main()
+int main(int argc, char *argv[])
 {
-	
-	HANDLE Com;
-	COMMTIMEOUTS m_CommTimeouts;
-	DCB dcb;
-	BOOL fSuccess;
-	
-	Com = CreateFileA("COM9", GENERIC_READ | GENERIC_WRITE,0, NULL, OPEN_EXISTING, 0, NULL);
-	if (Com == INVALID_HANDLE_VALUE){
-		printf("No señor\n");
-		ok=1;
-	}else{
-		printf("Si señor\n");
-		ok=0;
-	}	
-	
-	fSuccess = GetCommState(Com, &dcb);
-	
-	dcb.BaudRate = CBR_9600;
-	dcb.ByteSize = 8;
-	dcb.Parity = NOPARITY;
-	dcb.StopBits = ONESTOPBIT;
-	dcb.fBinary = FALSE;
-	dcb.fAbortOnError = TRUE;
+	HANDLE hComm;
+	DWORD MORO;
+	char   *pcCommPort = "COM9";
+	BOOL Write_Status;
+	DCB dcbSerialParams;					// Initializing DCB structure
+	COMMTIMEOUTS timeouts = { 0 };
+	BOOL  Read_Status;                      // Status of the various operations 
+	DWORD dwEventMask;						// Event mask to trigger
+	char  *TempChar;                        // Temperory Character
+	char  *SerialBuffer[BUFFERLENGTH+1];               // Buffer Containing Rxed Data
+	DWORD NoBytesRead;                     // Bytes read by ReadFile()
+	int i = 0;
 
-	SetCommState(Com, &dcb);
-	
-	// Leer time-outs actuales  ab se prende b se apaga
-	
-    GetCommTimeouts(Com, &m_CommTimeouts);
+	hComm = CreateFileA(pcCommPort,
+		GENERIC_READ | GENERIC_WRITE,
+		0,    // must be opened with exclusive-access
+		NULL, // no security attributes
+		OPEN_EXISTING, // must use OPEN_EXISTING
+		0,    // not overlapped I/O
+		NULL  // hTemplate must be NULL for comm devices
+	);
 
-	// Nuevos valores de timeout:
-    m_CommTimeouts.ReadIntervalTimeout = 50;
-	m_CommTimeouts.ReadTotalTimeoutConstant = 50;
-	m_CommTimeouts.ReadTotalTimeoutMultiplier = 10;
-	m_CommTimeouts.WriteTotalTimeoutConstant = 50;
-	m_CommTimeouts.WriteTotalTimeoutMultiplier = 10;
+	if (hComm == INVALID_HANDLE_VALUE)
+	{
+		
+		if (GetLastError() == ERROR_FILE_NOT_FOUND)
+		{
+			puts("cannot open port!");
+			return 0;
+		}
 
-	// Establecer timeouts:
-	SetCommTimeouts (Com, &m_CommTimeouts);
+		puts("invalid handle value!");
+		return 0;
+	}
+	else
+	  //printf("opening serial port successful");
+
+	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+	Write_Status = GetCommState(hComm, &dcbSerialParams);     //retreives  the current settings
+
+	if (Write_Status == FALSE) {
+		printf("\n   Error! in GetCommState()");
+		CloseHandle(hComm);
+		return 1;
+	}
+
+
+	dcbSerialParams.BaudRate = CBR_57600;      // Setting BaudRate = 9600
+	dcbSerialParams.ByteSize = 8;             // Setting ByteSize = 8
+											  //dcbSerialParams.
+	dcbSerialParams.StopBits = ONESTOPBIT;    // Setting StopBits = 1
+	dcbSerialParams.Parity = ODDPARITY;      // Setting Parity = None
+
+	Write_Status = SetCommState(hComm, &dcbSerialParams);  //Configuring the port according to settings in DCB
+
+	// Set COM port timeout settings
+	timeouts.ReadIntervalTimeout = 50;
+	timeouts.ReadTotalTimeoutConstant = 50;
+	timeouts.ReadTotalTimeoutMultiplier = 10;
+	timeouts.WriteTotalTimeoutConstant = 50;
+	timeouts.WriteTotalTimeoutMultiplier = 10;
+	if (SetCommTimeouts(hComm, &timeouts) == 0)
+	{
+		printf("Error setting timeouts\n");
+		CloseHandle(hComm);
+		return 1;
+	}
+	
+	DWORD  NumWritten;
+	DWORD  dNoOFBytestoWrite;              // No of bytes to write into the port
+	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+	
+	//====================================================================================
 	
 	while(ok==0)
 	{
-			printf("Digite la opcion que desea realizar \n");
+	printf("Digite la opcion que desea realizar \n");
 	printf("1. Sincronizar hora \n");
 	printf("2. Cambiar clave \n");
 	scanf("%i", &opcion);
@@ -89,27 +124,79 @@ int main()
 			xx[k+3]=hora[k];
 		}			
 		xx[6]=0x19;
-		EscribirSerie(Com,xx);
+		
+		dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
+		
+		if (!WriteFile(hComm, xx, dNoOFBytestoWrite,&dNoOfBytesWritten, NULL))
+		{
+			printf("Error writing text to %s\n", pcCommPort);
+		}		
+		
+		Read_Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	
+		 /*-------------------------- Program will Wait here till a Character is received ------------------------*/
+	
+		if (Read_Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+		}
+		else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+		{
+			printf("Recepcion: ");
+		
+			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
+			
+				{
+					printf("wrong character");
+				}
+			printf("%s \n", SerialBuffer);
+		}
+		
 		ok=1;
 		break;
 		case 2:
-			printf("Tu repuesta: %i. Cambiar clave \n",opcion);
-			printf("Digite la clave >> ");
-			scanf("%08X",&clave);
-			for(k=0;k<4;k++)
-			{
-				tok[k]=(clave>>(24-(k*8))&0X000000FF);
-			}
-			xx[0]=0x16;
-			xx[1]=0x08;
-			xx[2]=0x80;
-			for(k=0;k<4;k++)
-			{
-				xx[k+3]=tok[k];
-			}
-				
-			EscribirSerie(Com,xx);
-			ok=0;
+		printf("Tu repuesta: %i. Cambiar clave \n",opcion);
+		printf("Digite la clave >> ");
+		scanf("%08X",&clave);
+		for(k=0;k<4;k++)
+		{
+			tok[k]=(clave>>(24-(k*8))&0X000000FF);
+		}
+		xx[0]=0x16;
+		xx[1]=0x08;
+		xx[2]=0x80;
+		for(k=0;k<4;k++)
+		{
+			xx[k+3]=tok[k];
+		}
+		
+		dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
+		
+		if (!WriteFile(hComm, xx, dNoOFBytestoWrite,&dNoOfBytesWritten, NULL))
+		{
+			printf("Error writing text to %s\n", pcCommPort);
+		}		
+		
+		Read_Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	
+		 /*-------------------------- Program will Wait here till a Character is received ------------------------*/
+	
+		if (Read_Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+		}
+		else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+		{
+			printf("Recepcion: ");
+		
+			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
+			
+				{
+					printf("wrong character");
+				}
+			printf("%s \n", SerialBuffer);
+		}
+		ok=0;
 		break;
 		default:
 			printf("Digite una opcion valida. :/ \n");
@@ -140,14 +227,8 @@ int main()
 		ok=0;
 	}
 	}
-}
 
-void EscribirSerie(HANDLE idComDev, char *buf)
-{
-    char oBuffer[256];  /* Buffer de salida */
-    DWORD iBytesWritten;
-
-    iBytesWritten = 0;
-    strcpy(oBuffer, buf);
-    WriteFile(idComDev, oBuffer, strlen(oBuffer), &iBytesWritten, NULL);
+	CloseHandle(hComm);//Closing the Serial Port
+	
+	return 0;
 }
