@@ -12,6 +12,7 @@ unsigned long clave = 0x16C09C19/*clave original de inicializacion*/,tokenLocal=
 int tempE=0,opcion=0,m=0;
 double temp=0;
 char ok=0,k=0,xx[25]="b",hora[3]="0",tok[4]="0",tb=0;
+unsigned char cs=0;
 
 int main(int argc, char *argv[])
 {
@@ -95,12 +96,14 @@ int main(int argc, char *argv[])
 	printf("Digite la opcion que desea realizar \n");
 	printf("1. Sincronizar hora \n");
 	printf("2. Cambiar clave \n");
+	printf("3. Error clase dato \n");
+	printf("4. Error CheckSum \n");  																																														//printf("5. Error BITS I/F \n");
 	scanf("%i", &opcion);
 	switch(opcion)
 	{
 		case 1: 
 		printf("Tu respuesta: %i. Sincronizar hora \n",opcion);
-		gettimeofday(&start,NULL); //Medida de tiempo incial 
+		gettimeofday(&start,NULL); //Medida de tiempo inicial 
 		tiempo=start.tv_sec-1641013200;
 		temp=(double)tiempo/86400;
 		tempE=tiempo/86400;
@@ -117,13 +120,19 @@ int main(int argc, char *argv[])
 		tempE=(int)temp;
 		hora[2]=tempE;
 		xx[0]=0x16;
-		xx[1]=0x07;
+		xx[1]=0x08;
 		xx[2]=0x40;
 		for(k=0;k<3;k++)
 		{
 			xx[k+3]=hora[k];
-		}			
-		xx[6]=0x19;
+		}
+		cs=0;
+		for(k=0;k<(xx[1]-2);k++)
+		{
+			cs=cs+xx[k];
+		}
+		xx[6]=cs;
+		xx[7]=0x19;
 		
 		dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
 		
@@ -145,7 +154,6 @@ int main(int argc, char *argv[])
 			printf("Recepcion: ");
 		
 			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
-			
 				{
 					printf("wrong character");
 				}
@@ -163,13 +171,19 @@ int main(int argc, char *argv[])
 			tok[k]=(clave>>(24-(k*8))&0X000000FF);
 		}
 		xx[0]=0x16;
-		xx[1]=0x08;
+		xx[1]=0x09;
 		xx[2]=0x80;
 		for(k=0;k<4;k++)
 		{
 			xx[k+3]=tok[k];
 		}
-		
+		cs=0;
+		for(k=0;k<(xx[1]-2);k++)
+		{
+			cs=cs+xx[k];
+		}
+		xx[7]=cs;
+		xx[8]=0x19;
 		dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
 		
 		if (!WriteFile(hComm, xx, dNoOFBytestoWrite,&dNoOfBytesWritten, NULL))
@@ -190,7 +204,6 @@ int main(int argc, char *argv[])
 			printf("Recepcion: ");
 		
 			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
-			
 				{
 					printf("wrong character");
 				}
@@ -198,6 +211,132 @@ int main(int argc, char *argv[])
 		}
 		ok=0;
 		break;
+		case 3:
+			xx[0]=0x16;
+			xx[1]=0x08;
+			xx[2]=0x60;
+			for(k=0;k<4;k++)
+			{
+				xx[k+3]=0x25;
+			}
+			for(k=0;k<(xx[1]-2);k++)
+			{
+				cs=cs+xx[k];
+			}
+			xx[7]=cs;
+			xx[8]=0x19;		
+			
+			dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
+		
+		if (!WriteFile(hComm, xx, dNoOFBytestoWrite,&dNoOfBytesWritten, NULL))
+		{
+			printf("Error writing text to %s\n", pcCommPort);
+		}		
+		
+		Read_Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	
+		 /*-------------------------- Program will Wait here till a Character is received ------------------------*/
+	
+		if (Read_Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+		}
+		else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+		{
+			printf("Recepcion: ");
+		
+			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
+				{
+					printf("wrong character");
+				}
+			printf("%s \n", SerialBuffer);
+		}
+		ok=0;
+		break;
+		case 4:
+			xx[0]=0x16;
+			xx[1]=0x08;
+			xx[2]=0x80;
+			for(k=0;k<4;k++)
+			{
+				xx[k+3]=0x25;
+			}
+			for(k=0;k<(xx[1]-2);k++)
+			{
+				cs=cs+xx[k];
+			}
+			xx[7]=cs+1;
+			xx[8]=0x19;		
+			
+			dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
+		
+		if (!WriteFile(hComm, xx, dNoOFBytestoWrite,&dNoOfBytesWritten, NULL))
+		{
+			printf("Error writing text to %s\n", pcCommPort);
+		}		
+		
+		Read_Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	
+		 /*-------------------------- Program will Wait here till a Character is received ------------------------*/
+	
+		if (Read_Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+		}
+		else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+		{
+			printf("Recepcion: ");
+		
+			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
+				{
+					printf("wrong character");
+				}
+			printf("%s \n", SerialBuffer);
+		}
+		ok=0;
+		break;
+		/*case 5:
+			xx[0]=0x16;
+			xx[1]=0x08;
+			xx[2]=0x60;
+			for(k=0;k<4;k++)
+			{
+				xx[k+3]=0x25;
+			}
+			for(k=0;k<(xx[1]-2);k++)
+			{
+				cs=cs+xx[k];
+			}
+			xx[7]=cs;
+			xx[8]=0x18;		
+			
+			dNoOFBytestoWrite = sizeof(xx); // Calculating the no of bytes to write into the port
+		
+		if (!WriteFile(hComm, xx, dNoOFBytestoWrite,&dNoOfBytesWritten, NULL))
+		{
+			printf("Error writing text to %s\n", pcCommPort);
+		}		
+		
+		Read_Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	
+		 /*-------------------------- Program will Wait here till a Character is received ------------------------
+	
+		if (Read_Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+		}
+		else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+		{
+			printf("Recepcion: ");
+		
+			if (!ReadFile(hComm, SerialBuffer, BUFFERLENGTH, &NoBytesRead, NULL))
+			
+				{
+					printf("wrong character");
+				}
+			printf("%s \n", SerialBuffer);
+		}
+		break;*/
 		default:
 			printf("Digite una opcion valida. :/ \n");
 			ok=0;

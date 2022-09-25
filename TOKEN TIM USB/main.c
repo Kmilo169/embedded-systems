@@ -47,7 +47,6 @@ volatile int seg=0,h=0,m=0,tp=0;
 uint32_t cambio=0;
 unsigned long long token1=0x16C09C19;
 volatile char xx=0,j=0,punto=0,referencia=0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -488,16 +487,24 @@ void sendR(char w)
 	char *txt;
 	int ttxt=0;
 
-	if(w==0)
+	switch(w)
 	{
-		txt="OK";
-	}
-	else
-	{
-		txt="BAD";
+		case 0:
+			txt="R sINCRONIZACION: CON EXITO";
+		break;
+		case 1:
+			txt="ASIGNACION DE TOKEN EXITOSO";
+		break;
+		case 2:
+			txt="CLASE DE DATO NO RECONOCIDA";
+		break;
+		case 3:
+			txt="ERROR > CHECKSUM DIVERGENTE";
+		break;
 	}
 	ttxt=strlen(txt);
 	CDC_Transmit_FS(txt, ttxt);
+	txt=" ";
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -508,11 +515,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void funcioncita(uint8_t* bufito, uint32_t tamanito)
 {
-	char recep=0;
+	char recep=0,k=0;
+	unsigned char pcs=0;
 	tp=bufito[1];
-		switch(bufito[2])
-		{
-			case 0x40:
+	switch(bufito[2])
+	{
+		case 0x40:
+			pcs=0;
+			for(k=0;k<(tp-2);k++)
+			{
+				pcs=pcs+bufito[k];
+			}
+			if(pcs==bufito[tp-2])
+			{
 				h=bufito[3];
 				m=bufito[4];
 				seg=bufito[5];
@@ -521,16 +536,37 @@ void funcioncita(uint8_t* bufito, uint32_t tamanito)
 				j=1;
 				xx=1;
 				recep=0;
-			break;
-			case 0x80:
+			}else{
+				recep=3;
+			}
+		break;
+		case 0x80:
+			pcs=0;
+			recep=0;
+			for(k=0;k<(tp-2);k++)
+			{
+				pcs=pcs+bufito[k];
+			}
+			if(pcs==bufito[tp-2])
+			{
 				token1=((bufito[3]<<24)&0xFF000000)|((bufito[4]<<16)&0xFF0000)|((bufito[5]<<8)&0xFF00)|(bufito[6]&0XFF);
-				recep=0;
-			break;
-			default:
 				recep=1;
-			break;
-		}
-		sendR(recep);
+			}else{
+				recep=3;
+			}
+		break;
+		default:
+			recep=2;
+		break;
+	}
+	sendR(recep);
+	/*if((bufito[0]!=0x16)||(bufito[tp-1]!=0x19))
+	{
+		recep=3;
+	}else{
+		recep=0;
+
+	}*/
 }
 
 /* USER CODE END 4 */
