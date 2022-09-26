@@ -97,7 +97,8 @@ int main(int argc, char *argv[])
 	printf("1. Sincronizar hora \n");
 	printf("2. Cambiar clave \n");
 	printf("3. Error clase dato \n");
-	printf("4. Error CheckSum \n");  																																														//printf("5. Error BITS I/F \n");
+	printf("4. Error CheckSum \n");  	
+	printf("5. Error BITS I/F \n");
 	scanf("%i", &opcion);
 	switch(opcion)
 	{
@@ -213,7 +214,7 @@ int main(int argc, char *argv[])
 		break;
 		case 3:
 			xx[0]=0x16;
-			xx[1]=0x08;
+			xx[1]=0x09;
 			xx[2]=0x60;
 			for(k=0;k<4;k++)
 			{
@@ -255,7 +256,7 @@ int main(int argc, char *argv[])
 		break;
 		case 4:
 			xx[0]=0x16;
-			xx[1]=0x08;
+			xx[1]=0x09;
 			xx[2]=0x80;
 			for(k=0;k<4;k++)
 			{
@@ -295,9 +296,9 @@ int main(int argc, char *argv[])
 		}
 		ok=0;
 		break;
-		/*case 5:
+		case 5:
 			xx[0]=0x16;
-			xx[1]=0x08;
+			xx[1]=0x09;
 			xx[2]=0x60;
 			for(k=0;k<4;k++)
 			{
@@ -319,7 +320,7 @@ int main(int argc, char *argv[])
 		
 		Read_Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
 	
-		 /*-------------------------- Program will Wait here till a Character is received ------------------------
+		 /*-------------------------- Program will Wait here till a Character is received ------------------------*/
 	
 		if (Read_Status == FALSE)
 		{
@@ -336,7 +337,7 @@ int main(int argc, char *argv[])
 				}
 			printf("%s \n", SerialBuffer);
 		}
-		break;*/
+		break;
 		default:
 			printf("Digite una opcion valida. :/ \n");
 			ok=0;

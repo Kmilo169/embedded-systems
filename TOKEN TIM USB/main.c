@@ -131,8 +131,8 @@ int main(void)
 	  	  	  {
 	  	  		  if(xx==0) // Comparacion para seguir esperando sincronización o activar el conteo de 30 seg
 	  	  		  {
-	  	  			  lcd_put_cur(1, 2);
-	  	  			  lcd_send_string("Esperando S.");			//Impresion de espera de sincronización
+	  	  			  	lcd_put_cur(1, 2);
+	  	  				lcd_send_string("ESPERANDO S.");	//Impresion de espera de sincronización
 	  	  		  }
 	  	  		  else
 	  	  		  {
@@ -427,7 +427,7 @@ void lcd_send_char_hod(unsigned long long xx, char hod)
 	}
 }
 
-void imprimirhora(int s, int m, int h)
+void imprimirhora(int s, int m, int h) //fUNCION PARA IMPRIMIR TEMPORIZADOR QUE SE SINCRONIZACON LA HORA METODO UNIX
 {
 	lcd_put_cur(0,4);
 	if(h<10)
@@ -482,7 +482,7 @@ void imprimirhora(int s, int m, int h)
 			}
 }
 
-void sendR(char w)
+void sendR(char w) //fUNCION QUE ENVIA LA RESPUESTA SEGUN CADA CASO ESPECIFICO
 {
 	char *txt;
 	int ttxt=0;
@@ -490,7 +490,7 @@ void sendR(char w)
 	switch(w)
 	{
 		case 0:
-			txt="R sINCRONIZACION: CON EXITO";
+			txt="R SINCRONIZACION: CON EXITO";
 		break;
 		case 1:
 			txt="ASIGNACION DE TOKEN EXITOSO";
@@ -501,10 +501,12 @@ void sendR(char w)
 		case 3:
 			txt="ERROR > CHECKSUM DIVERGENTE";
 		break;
+		case 4:
+			txt="ERROR ESTRUCTURA DE PAQUETE";
+		break;
 	}
 	ttxt=strlen(txt);
 	CDC_Transmit_FS(txt, ttxt);
-	txt=" ";
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -517,56 +519,54 @@ void funcioncita(uint8_t* bufito, uint32_t tamanito)
 {
 	char recep=0,k=0;
 	unsigned char pcs=0;
-	tp=bufito[1];
-	switch(bufito[2])
+	tp=bufito[1]; //tOMAR EL TAMAÑO DEL PAQUETE SEGUN EL QUE DICE DENTRO DE EL
+	if((bufito[0]!=0x16)||(bufito[tp-1]!=0x19)) // COMPROBAR bIT DE INICIO Y FINALIZACION
 	{
-		case 0x40:
-			pcs=0;
-			for(k=0;k<(tp-2);k++)
-			{
-				pcs=pcs+bufito[k];
-			}
-			if(pcs==bufito[tp-2])
-			{
-				h=bufito[3];
-				m=bufito[4];
-				seg=bufito[5];
-				punto=bufito[5];
-				referencia=punto+30;
-				j=1;
-				xx=1;
-				recep=0;
-			}else{
-				recep=3;
-			}
-		break;
-		case 0x80:
-			pcs=0;
-			recep=0;
-			for(k=0;k<(tp-2);k++)
-			{
-				pcs=pcs+bufito[k];
-			}
-			if(pcs==bufito[tp-2])
-			{
-				token1=((bufito[3]<<24)&0xFF000000)|((bufito[4]<<16)&0xFF0000)|((bufito[5]<<8)&0xFF00)|(bufito[6]&0XFF);
-				recep=1;
-			}else{
-				recep=3;
-			}
-		break;
-		default:
-			recep=2;
-		break;
-	}
-	sendR(recep);
-	/*if((bufito[0]!=0x16)||(bufito[tp-1]!=0x19))
-	{
-		recep=3;
+		recep=4;
 	}else{
-		recep=0;
-
-	}*/
+		switch(bufito[2]) //EVALAUR LA CLASE DEL PAQUETE
+			{
+				case 0x40:
+					pcs=0;
+					for(k=0;k<(tp-2);k++) //COMPROBAR EL CHECKSUM DEL PAQUETE
+					{
+						pcs=pcs+bufito[k];
+					}
+					if(pcs==bufito[tp-2]) // ===================================
+					{
+						h=bufito[3]; //ASIGNAR LA DATA QUE BENGA EN EL PAQUETE
+						m=bufito[4];
+						seg=bufito[5];
+						punto=bufito[5];
+						referencia=punto+30;
+						j=1;
+						xx=1;
+						recep=0;
+					}else{
+						recep=3;
+					}
+				break;
+				case 0x80:
+					pcs=0;
+					for(k=0;k<(tp-2);k++) //COMPROBAR EL CHECKSUM DEL PAQUETE
+					{
+						pcs=pcs+bufito[k];
+					}
+					if(pcs==bufito[tp-2]) // ===================================
+					{
+						token1=((bufito[3]<<24)&0xFF000000)|((bufito[4]<<16)&0xFF0000)|((bufito[5]<<8)&0xFF00)|(bufito[6]&0XFF);
+						//ASIGNAR LA DATA QUE BENGA EN EL PAQUETE
+						recep=1;
+					}else{
+						recep=3;
+					}
+				break;
+				default:
+					recep=2;
+				break;
+			}
+	}
+	sendR(recep); //ENVIAR LA REPUESTA SEGUN EL CASO CARACTERIZADO
 }
 
 /* USER CODE END 4 */
