@@ -220,6 +220,7 @@ Makefile: ../PWM_MOTOR_1/PWM_MOTOR_1.pro C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspec
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/qt_config.prf \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/win32-g++/qmake.conf \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/exclusive_builds.prf \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/toolchain.prf \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/default_pre.prf \
@@ -245,6 +246,7 @@ Makefile: ../PWM_MOTOR_1/PWM_MOTOR_1.pro C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspec
 		../PWM_MOTOR_1/PWM_MOTOR_1.pro \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5Widgets.prl \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5Gui.prl \
+		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5SerialPort.prl \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5Core.prl \
 		C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/qtmaind.prl
 	$(QMAKE) -o Makefile ..\PWM_MOTOR_1\PWM_MOTOR_1.pro -spec win32-g++ "CONFIG+=debug" "CONFIG+=qml_debug"
@@ -407,6 +409,7 @@ C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/qt_functions.prf:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/qt_config.prf:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/win32-g++/qmake.conf:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/spec_post.prf:
+.qmake.stash:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/exclusive_builds.prf:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/toolchain.prf:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/default_pre.prf:
@@ -432,6 +435,7 @@ C:/Qt/Qt5.12.0/5.12.0/mingw73_64/mkspecs/features/lex.prf:
 ../PWM_MOTOR_1/PWM_MOTOR_1.pro:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5Widgets.prl:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5Gui.prl:
+C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5SerialPort.prl:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/Qt5Core.prl:
 C:/Qt/Qt5.12.0/5.12.0/mingw73_64/lib/qtmaind.prl:
 qmake: FORCE

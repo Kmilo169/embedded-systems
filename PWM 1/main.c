@@ -106,11 +106,7 @@ int main(void)
 	  {
 		  asig=0;
 		  energy=((htim2.Init.Period+1)/100)*percent;
-	  }else{
-
 	  }
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

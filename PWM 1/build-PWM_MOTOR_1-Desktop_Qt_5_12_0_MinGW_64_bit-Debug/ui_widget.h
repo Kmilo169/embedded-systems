@@ -11,6 +11,8 @@
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QComboBox>
+#include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
@@ -25,6 +27,8 @@ class Ui_Widget
 public:
     QPushButton *pushButton;
     QSlider *horizontalSlider;
+    QLabel *label_3;
+    QLabel *label_4;
     QWidget *widget;
     QVBoxLayout *verticalLayout;
     QLabel *label_2;
@@ -33,6 +37,10 @@ public:
     QVBoxLayout *verticalLayout_2;
     QPushButton *pushButton_2;
     QLineEdit *lineEdit;
+    QWidget *widget2;
+    QHBoxLayout *horizontalLayout;
+    QPushButton *pushButton_3;
+    QComboBox *comboBox;
 
     void setupUi(QWidget *Widget)
     {
@@ -41,20 +49,29 @@ public:
         Widget->resize(531, 310);
         pushButton = new QPushButton(Widget);
         pushButton->setObjectName(QString::fromUtf8("pushButton"));
-        pushButton->setGeometry(QRect(10, 90, 101, 31));
+        pushButton->setGeometry(QRect(10, 130, 101, 31));
         QFont font;
         font.setPointSize(12);
         pushButton->setFont(font);
         horizontalSlider = new QSlider(Widget);
         horizontalSlider->setObjectName(QString::fromUtf8("horizontalSlider"));
-        horizontalSlider->setGeometry(QRect(250, 90, 200, 20));
+        horizontalSlider->setGeometry(QRect(250, 130, 200, 20));
         horizontalSlider->setFont(font);
         horizontalSlider->setMaximum(100);
         horizontalSlider->setValue(50);
         horizontalSlider->setOrientation(Qt::Horizontal);
+        label_3 = new QLabel(Widget);
+        label_3->setObjectName(QString::fromUtf8("label_3"));
+        label_3->setGeometry(QRect(120, 180, 371, 16));
+        label_3->setFont(font);
+        label_3->setAlignment(Qt::AlignCenter);
+        label_4 = new QLabel(Widget);
+        label_4->setObjectName(QString::fromUtf8("label_4"));
+        label_4->setGeometry(QRect(20, 180, 165, 20));
+        label_4->setFont(font);
         widget = new QWidget(Widget);
         widget->setObjectName(QString::fromUtf8("widget"));
-        widget->setGeometry(QRect(120, 70, 116, 48));
+        widget->setGeometry(QRect(120, 110, 116, 48));
         verticalLayout = new QVBoxLayout(widget);
         verticalLayout->setSpacing(6);
         verticalLayout->setContentsMargins(11, 11, 11, 11);
@@ -75,7 +92,7 @@ public:
 
         widget1 = new QWidget(Widget);
         widget1->setObjectName(QString::fromUtf8("widget1"));
-        widget1->setGeometry(QRect(270, 20, 150, 63));
+        widget1->setGeometry(QRect(270, 60, 150, 63));
         verticalLayout_2 = new QVBoxLayout(widget1);
         verticalLayout_2->setSpacing(6);
         verticalLayout_2->setContentsMargins(11, 11, 11, 11);
@@ -94,6 +111,26 @@ public:
 
         verticalLayout_2->addWidget(lineEdit);
 
+        widget2 = new QWidget(Widget);
+        widget2->setObjectName(QString::fromUtf8("widget2"));
+        widget2->setGeometry(QRect(10, 20, 187, 30));
+        horizontalLayout = new QHBoxLayout(widget2);
+        horizontalLayout->setSpacing(6);
+        horizontalLayout->setContentsMargins(11, 11, 11, 11);
+        horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
+        horizontalLayout->setContentsMargins(0, 0, 0, 0);
+        pushButton_3 = new QPushButton(widget2);
+        pushButton_3->setObjectName(QString::fromUtf8("pushButton_3"));
+        pushButton_3->setFont(font);
+
+        horizontalLayout->addWidget(pushButton_3);
+
+        comboBox = new QComboBox(widget2);
+        comboBox->setObjectName(QString::fromUtf8("comboBox"));
+        comboBox->setFont(font);
+
+        horizontalLayout->addWidget(comboBox);
+
 
         retranslateUi(Widget);
 
@@ -104,9 +141,12 @@ public:
     {
         Widget->setWindowTitle(QApplication::translate("Widget", "Widget", nullptr));
         pushButton->setText(QApplication::translate("Widget", "Enviar %", nullptr));
+        label_3->setText(QString());
+        label_4->setText(QApplication::translate("Widget", "RESPUESTA:", nullptr));
         label_2->setText(QApplication::translate("Widget", "Porcentaje (%):", nullptr));
         label->setText(QApplication::translate("Widget", "50", nullptr));
         pushButton_2->setText(QApplication::translate("Widget", "SET Porcentaje (%)", nullptr));
+        pushButton_3->setText(QApplication::translate("Widget", "Abrir Puerto", nullptr));
     } // retranslateUi
 
 };
