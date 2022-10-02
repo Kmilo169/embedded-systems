@@ -44,7 +44,6 @@ TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 volatile char percent=0,asig=0;
-volatile int energy=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,17 +94,22 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
-  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,energy);
+  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(asig==1)
+	  while(TIM2->CCR1<199)
 	  {
-		  asig=0;
-		  energy=((htim2.Init.Period+1)/100)*percent;
+		  TIM2->CCR1++;
+		  HAL_Delay(75);
+	  }
+	  while(TIM2->CCR1>1)
+	  {
+	  	  TIM2->CCR1--;
+	  	  HAL_Delay(75);
 	  }
     /* USER CODE END WHILE */
 
@@ -179,9 +183,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 60000;
+  htim2.Init.Prescaler = 42000;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1400-1;
+  htim2.Init.Period = 200-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -273,7 +277,6 @@ void funcioncita(uint8_t* bufito, uint32_t tamanito)
 		if(pcs==bufito[tp-2]) // ===================================
 		{
 			percent=bufito[2];
-			asig=1;
 			recep=0;
 		}else{
 			recep=1;

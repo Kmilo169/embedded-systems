@@ -69,7 +69,6 @@ void Widget::on_pushButton_3_clicked()
 void Widget::readport()
 {
     QByteArray infor=apunport->readAll();
-    qDebug()<<infor;
     ui->label_3->setText(infor);
 }
 
