@@ -32,6 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define F_CLK  2000UL
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -40,16 +41,28 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
+volatile int rpmsmed=0;
+volatile uint32_t p1 = 0;
+volatile uint32_t p2 = 0;
+uint32_t pasos = 0,fs = 0;
+volatile uint16_t of = 0;
+volatile int rpmsrecep=0;
+volatile uint8_t packtosend[7]={0x16,0x07,0x00,0x00,0x00,0x1D,0x19},medida = 0,seprpm[3];
+volatile unsigned char chesum=0;
+volatile char k=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-
+/* @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
+*/
+uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -86,14 +99,59 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start_IT(&htim2);
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
+  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,0);
+  CDC_Transmit_FS(packtosend,packtosend[1]);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	TIM2->CCR2=rpmsrecep/5;
+	fs=(uint32_t)(F_CLK/pasos);
+	rpmsmed=fs*60;
+	for(k=0;k<3;k++)
+	{
+		seprpm[k]=0;
+	}
+	itoa(rpmsmed,seprpm,16);
+	for(k=0;k<3;k++)
+	{
+	   if(seprpm[k]<58)
+	   {
+	      seprpm[k]=seprpm[k]-48;
+	   }
+	   else
+	   {
+	       seprpm[k]=seprpm[k]-87;
+	   }
+	}
+	packtosend[2]=seprpm[0];
+	packtosend[3]=seprpm[1];
+	packtosend[4]=seprpm[2];
+	chesum=0;
+	for(k=0;k<5;k++)
+	{
+	   chesum=chesum+packtosend[k];
+	}
+	packtosend[5]=chesum;
+	CDC_Transmit_FS(packtosend,packtosend[1]);
+	if(rpmsmed!=rpmsrecep)
+	{
+		if(rpmsmed<rpmsrecep)
+		{
+			TIM2->CCR2=TIM2->CCR2+((rpmsrecep-rpmsmed)/5);
+		}
+		else if(rpmsmed>rpmsrecep){
+			TIM2->CCR2=TIM2->CCR2+((rpmsmed-rpmsrecep)/5);
+		}
+	}
+	HAL_Delay(50);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -147,6 +205,78 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_IC_InitTypeDef sConfigIC = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 42000;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 200-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 0;
+  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -161,7 +291,48 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
+{
+    if(medida == 0)
+    {
+        p1=TIM2->CCR1;
+        of= 0;
+        medida=1;
+    }
+    else if(medida==1)
+    {
+        p2 = TIM2->CCR1;
+        pasos=(p2 + (of * 200)) - p1;
+        medida=0;
+    }
+}
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+    of++;
+}
+
+void funcioncita(uint8_t* bufito, uint32_t tamanito)
+{
+	unsigned char pcs=0;
+	char tp=0;
+		tp=bufito[1]; //TOMAR EL TAMAÑO DEL PAQUETE SEGUN EL QUE DICE DENTRO DE EL
+		if((bufito[0]!=0x16)||(bufito[tp-1]!=0x19)) // COMPROBAR bIT DE INICIO Y FINALIZACION
+		{
+
+		}else{
+			for(k=0;k<(tp-2);k++) //COMPROBAR EL CHECKSUM DEL PAQUETE
+			{
+				pcs=pcs+bufito[k];
+			}
+			if(pcs==bufito[tp-2]) // ===================================
+			{
+				rpmsrecep=((bufito[2]<<8)&0xF00)|((bufito[3]<<4)&0xF0)|(bufito[4]);
+			}else{
+
+			}
+		}
+}
 /* USER CODE END 4 */
 
 /**
