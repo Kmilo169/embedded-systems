@@ -45,7 +45,12 @@ ADC_HandleTypeDef hadc1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
+volatile char infi=0,of=0,contcuartos=0,cienms=0;
+volatile float p1=0,p2=0,pasos=0;
+int rpmsmedidas=0,rpmsrecep=0,promrpmsmed=0;
+unsigned char cs=0,tp=0,k=0;
+unsigned char pack[13]={0};
+uint32_t ValueADC;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,6 +61,8 @@ static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 /*@retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY*/
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
+void initpack();
+void calccs(unsigned char *p);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -101,14 +108,45 @@ int main(void)
   __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,0);
   HAL_ADC_Start(&hadc1);
   HAL_ADC_PollForConversion(&hadc1, 1);
+  initpack();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_Delay(1);
-    /* USER CODE END WHILE */
+	 ValueADC=HAL_ADC_GetValue(&hadc1);
+	 TIM2->CCR1=rpmsrecep;
+	 while(contcuartos<4)
+	 {
+		 rpmsmedidas=150000/pasos;
+		 promrpmsmed=promrpmsmed+rpmsmedidas;
+	 }
+	 contcuartos=0;
+	 if(cienms==2)
+	 {
+		 cienms=0;
+		 for(k=0;k<3;k++)
+		 {
+			 pack[k+3]=((promrpmsmed/4)>>(8-(k*4)))&0x0F;
+			 pack[k+6]=((rpmsrecep)>>(8-(k*4)))&0x0F;
+		 }
+		 calccs(pack);
+		 CDC_Transmit_FS(pack,pack[1]);
+	 }else{
+		 while((promrpmsmed/4)!=rpmsrecep)
+		 {
+			 if((promrpmsmed/4)<rpmsrecep)
+		 	 {
+				 TIM2->CCR1=TIM2->CCR1+(rpmsrecep-(promrpmsmed/4));
+		 	 }else if((promrpmsmed/4)>rpmsrecep)
+		 	 {
+		 	 	 TIM2->CCR1=TIM2->CCR1-((promrpmsmed/4)-rpmsrecep);
+		 	 }
+		 }
+	 }
+	 promrpmsmed=0;
+	 /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -235,7 +273,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 8400;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1000;
+  htim2.Init.Period = 1000-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -299,19 +337,63 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void initpack()
+{
+	pack[0]=0x16;
+	pack[1]=0x0D;
+	pack[2]=0x21;
+	for(k=3;k<=9;k++)
+	{
+		pack[k]=0x00;
+	}
+	cs=0;
+	for(k=0;k<10;k++)
+	{
+		cs=cs+pack[k];
+	}
+	pack[10]=cs;
+	pack[11]=0x09;
+	pack[12]=0x19;
+}
+
+void calccs(unsigned char *p)
+{
+	unsigned char cks=0;
+
+	for(k=0;k<10;k++)
+	{
+		cks=cks+pack[k];
+	}
+	pack[10]=cks;
+}
+
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-
+	if(infi == 0)
+	{
+	    p1=TIM2->CCR1;
+	    of= 0;
+	    infi=1;
+	}
+	else if(infi==1)
+	{
+	    p2 = TIM2->CCR1;
+	    pasos=(p2 + (of * 1000)) - p1;
+	    contcuartos++;
+	    infi=0;
+	}
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-
+	of++;
+	cienms++;
 }
 
 void fxUSB(uint8_t* buf, uint32_t t)
 {
-
+		tp=buf[1]; //TOMAR EL TAMAÑO DEL PAQUETE SEGUN EL QUE DICE DENTRO DE EL
+		rpmsrecep=((buf[2]<<8)&0xF00)|((buf[3]<<4)&0xF0)|((buf[4])&0xF);
 }
 /* USER CODE END 4 */
 
