@@ -38,11 +38,17 @@ typedef enum{
 	T_LED4,
 	TTOTAL
 }TIMERS;
+
 typedef enum{
 	LED_STANDBY=0,
 	LED_OFF,
 	LED_ON
 }ST_LEDS;
+
+typedef enum{
+	Comm_STANBY=0,
+	Comm_PROCESS
+}COMMs;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -60,7 +66,9 @@ TIM_HandleTypeDef htim2;
 /* USER CODE BEGIN PV */
 volatile uint32_t of=0,timers[TTOTAL];
 ST_LEDS st_led1=LED_STANDBY,st_led2=LED_STANDBY,st_led3=LED_STANDBY,st_led4=LED_STANDBY;
-volatile uint8_t pts[5]={0x16,0x05,0x00,0x00,0x1B,0x19};
+uint8_t pts[6]={0x16,0x06,0x00,0x00,0x1B,0x19};
+uint16_t tr=0;
+COMMs com1=Comm_STANBY;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,6 +76,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
+void control_Comm();
+void Comm_1();
 void control_LEDs();
 void LED1();
 void LED2();
@@ -122,6 +132,7 @@ int main(void)
   while (1)
   {
 	  control_LEDs();
+	  control_Comm();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -276,9 +287,8 @@ void LED1()
 			if(timers[T_LED1]==0) st_led1=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULAMA_GPIO_Port,PULAMA_Pin))
 			{
-				pts[2]=((timers[T_LED1])>>8)&0xFF;
-				pts[3]=(timers[T_LED1])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED1];
+				com1=Comm_PROCESS;
 			}
 		break;
 		case LED_ON:
@@ -291,9 +301,8 @@ void LED1()
 			if(timers[T_LED1]==0) st_led1=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULAMA_GPIO_Port,PULAMA_Pin))
 			{
-				pts[2]=((timers[T_LED1])>>8)&0xFF;
-				pts[3]=(timers[T_LED1])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED1];
+				com1=Comm_PROCESS;
 			}
 		break;
 	}
@@ -322,9 +331,8 @@ void LED2()
 			if(timers[T_LED2]==0) st_led2=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULAZU_GPIO_Port,PULAZU_Pin))
 			{
-				pts[2]=((timers[T_LED2])>>8)&0xFF;
-				pts[3]=(timers[T_LED2])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED2];
+				com1=Comm_PROCESS;
 			}
 		break;
 		case LED_ON:
@@ -337,9 +345,8 @@ void LED2()
 			if(timers[T_LED2]==0) st_led2=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULAZU_GPIO_Port,PULAZU_Pin))
 			{
-				pts[2]=((timers[T_LED2])>>8)&0xFF;
-				pts[3]=(timers[T_LED2])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED2];
+				com1=Comm_PROCESS;
 			}
 		break;
 	}
@@ -368,9 +375,8 @@ void LED3()
 			if(timers[T_LED3]==0) st_led3=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULRED_GPIO_Port,PULRED_Pin))
 			{
-				pts[2]=((timers[T_LED3])>>8)&0xFF;
-				pts[3]=(timers[T_LED3])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED3];
+				com1=Comm_PROCESS;
 			}
 		break;
 		case LED_ON:
@@ -383,9 +389,8 @@ void LED3()
 			if(timers[T_LED3]==0) st_led3=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULRED_GPIO_Port,PULRED_Pin))
 			{
-				pts[2]=((timers[T_LED3])>>8)&0xFF;
-				pts[3]=(timers[T_LED3])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED3];
+				com1=Comm_PROCESS;
 			}
 		break;
 	}
@@ -414,9 +419,8 @@ void LED4()
 			if(timers[T_LED4]==0) st_led4=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULVER_GPIO_Port,PULVER_Pin))
 			{
-				pts[2]=((timers[T_LED4])>>8)&0xFF;
-				pts[3]=(timers[T_LED4])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED4];
+				com1=Comm_PROCESS;
 			}
 		break;
 		case LED_ON:
@@ -429,9 +433,8 @@ void LED4()
 			if(timers[T_LED4]==0) st_led4=LED_STANDBY;
 			if(1 == HAL_GPIO_ReadPin(PULVER_GPIO_Port,PULVER_Pin))
 			{
-				pts[2]=((timers[T_LED4])>>8)&0xFF;
-				pts[3]=(timers[T_LED4])&0xFF;
-				CDC_Transmit_FS(pts, pts[1]);
+				tr=timers[T_LED4];
+				com1=Comm_PROCESS;
 			}
 		break;
 	}
@@ -445,6 +448,27 @@ void control_LEDs()
 	LED4();
 }
 
+void control_Comm()
+{
+	Comm_1();
+}
+
+void Comm_1()
+{
+	switch(com1)
+	{
+		case Comm_STANBY:
+
+		break;
+		case Comm_PROCESS:
+			pts[2]=((tr)>>8)&0xFF;
+			pts[3]=(tr)&0xFF;
+			CDC_Transmit_FS(pts, pts[1]);
+			com1=Comm_STANBY;
+		break;
+	}
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	uint8_t k=0;
@@ -452,6 +476,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if(timers[k]!=0) timers[k]--;
 	}
+}
+
+void fxUSB(uint8_t* buf,uint32_t T)
+{
+
 }
 /* USER CODE END 4 */
 

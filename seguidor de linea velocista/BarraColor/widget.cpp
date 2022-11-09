@@ -12,9 +12,6 @@ Widget::Widget(QWidget *parent) :
     ui->setupUi(this);
 
     qDebug()<<"Start...";
-    tim=new QTimer(this);
-    connect(tim,SIGNAL(timeout()),this,SLOT(xx()));
-    tim->start(500);
     scanports();
     initbarandpack();
 }
@@ -24,32 +21,16 @@ Widget::~Widget()
     delete ui;
 }
 
-void Widget::xx()
-{
-    if(css->isOpen())
-    {
-        qDebug()<<"Preguntando Datos...";
-        css->write(pts,pts[1]);
-    }else{
-        tim->start(5000);
-        QMessageBox msg;
-        msg.setText("El puerto esta cerrado :/, por favor abralo");
-        msg.exec();
-    }
-}
-
-
 void Widget::readport()
 {
     buf=css->readAll();
 
     if(((((buf[3]<<8)&0x00FF)|((buf[4])&0x00FF))/4)<590)//c0
     {
-        tim->stop();
         pts[4]=0x72;
+        css->write(pts,pts[1]);
     }else{
         pts[4]=0x27;
-        tim->start(500);
 
         g=QString::number((((buf[5]<<8)&0xFF00)|((buf[6])&0x00FF))/4); //c1
         ui->label->setStyleSheet(bc+g+c+g+c+g+f);
