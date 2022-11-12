@@ -25,37 +25,37 @@ void Widget::readport()
 {
     buf=css->readAll();
 
-    if(((((buf[3]<<8)&0x00FF)|((buf[4])&0x00FF))/4)<590)//c0
-    {
-        pts[4]=0x72;
-        css->write(pts,pts[1]);
-    }else{
+    //if(((((buf[3]<<8)&0x00FF)|((buf[4])&0x00FF))/4)<590)//c0
+    //{
+        //pts[4]=0x72;
+      //  css->write(pts,pts[1]);
+    //}else{
         pts[4]=0x27;
 
-        g=QString::number((((buf[5]<<8)&0xFF00)|((buf[6])&0x00FF))/4); //c1
+        g=QString::number((((buf[5]<<8)&0xFF00)|((buf[6])&0x00FF))/16); //c1
         ui->label->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[7]<<8)&0xFF00)|((buf[8])&0x00FF))/4); //c2
+        g=QString::number((((buf[7]<<8)&0xFF00)|((buf[8])&0x00FF))/16); //c2
         ui->label_2->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[9]<<8)&0xFF00)|((buf[10])&0x00FF))/4); //c3
+        g=QString::number((((buf[9]<<8)&0xFF00)|((buf[10])&0x00FF))/16); //c3
         ui->label_3->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[11]<<8)&0xFF00)|((buf[12])&0x00FF))/4); //c4
+        g=QString::number((((buf[11]<<8)&0xFF00)|((buf[12])&0x00FF))/16); //c4
         ui->label_4->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[13]<<8)&0xFF00)|((buf[14])&0x00FF))/4); //c5
+        g=QString::number((((buf[13]<<8)&0xFF00)|((buf[14])&0x00FF))/16); //c5
         ui->label_5->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[15]<<8)&0xFF00)|((buf[16])&0x00FF))/4); //c6
+        g=QString::number((((buf[15]<<8)&0xFF00)|((buf[16])&0x00FF))/16); //c6
         ui->label_6->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[17]<<8)&0xFF00)|((buf[18])&0x00FF))/4); //c7
+        g=QString::number((((buf[17]<<8)&0xFF00)|((buf[18])&0x00FF))/16); //c7
         ui->label_7->setStyleSheet(bc+g+c+g+c+g+f);
 
-        g=QString::number((((buf[19]<<8)&0xFF00)|((buf[20])&0x00FF))/4); //c8
+        g=QString::number((((buf[19]<<8)&0xFF00)|((buf[20])&0x00FF))/16); //c8
         ui->label_8->setStyleSheet(bc+g+c+g+c+g+f);//*/
-    }
+    //}
 }
 
 void Widget::openport()

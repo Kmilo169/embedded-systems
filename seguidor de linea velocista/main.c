@@ -43,13 +43,12 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-uint32_t adcs[9]={0},value=0;
-volatile uint32_t of=0;
-unsigned char pts[23]={0},cs=0,k=0;
-volatile char q=0;
+uint32_t adcs[9]={0},of=0;
+uint8_t pts[23]={0},cs=0,k=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,13 +57,14 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 /*@retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY*/
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 void initpack();
 void cpack();
 void packmb();
-
+void velocista();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -104,31 +104,27 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_ADC1_Init();
   MX_TIM4_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   initpack();
-  HAL_TIM_Base_Start(&htim4);
-  //HAL_TIM_Base_Start_IT(&htim4);
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
-  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_3,0);
-  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_4,0);
+  HAL_TIM_Base_Start_IT(&htim2); // Inicialización del TIM que interrumpe cada 1 ms
+
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3); //PWM motor 1
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //PWM motor 2
+
+  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_3,0); // MOTOR en 0
+  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_4,0); // MOTOR en 0
   HAL_ADC_Start_DMA(&hadc1, adcs, 9);
+  HAL_GPIO_WritePin(LEDBLANCO_GPIO_Port,LEDBLANCO_Pin,1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	 if(q==1)
-	 {
-		 q=0;
-		 cpack();
-	 }else{
-		 packmb();
-		 HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-		 HAL_Delay(200);
-	 }
-	 HAL_Delay(100);
+	 HAL_GPIO_TogglePin(LEDAZUL_GPIO_Port,LEDAZUL_Pin);
+	 HAL_GPIO_TogglePin(LEDBLANCO_GPIO_Port,LEDBLANCO_Pin);
+	 HAL_Delay(75);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -203,7 +199,7 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc1.Init.Resolution = ADC_RESOLUTION_10B;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ENABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
@@ -211,7 +207,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 9;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -306,6 +302,51 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 84;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1000-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief TIM4 Initialization Function
   * @param None
   * @retval None
@@ -390,23 +431,33 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LEDAZUL_GPIO_Port, LEDAZUL_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : LED_Pin */
-  GPIO_InitStruct.Pin = LED_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LEDBLANCO_GPIO_Port, LEDBLANCO_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LEDAZUL_Pin */
+  GPIO_InitStruct.Pin = LEDAZUL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(LEDAZUL_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LEDBLANCO_Pin */
+  GPIO_InitStruct.Pin = LEDBLANCO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LEDBLANCO_GPIO_Port, &GPIO_InitStruct);
 
 }
 
 /* USER CODE BEGIN 4 */
 
-/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	of++;
-}*/
+}
 
 void initpack()
 {
@@ -432,35 +483,14 @@ void cpack()
 	CDC_Transmit_FS(pts, pts[1]);
 }
 
-void packmb()
+void velocista()
 {
-	pts[0]=0x16;
-	pts[1]=0x07;
-	pts[2]=0x09;
-	pts[3]=(adcs[0]>>8)&0x00FF;
-	pts[4]=(adcs[0])&0x00FF;
-	cs=0;
-	for(k=0;k<5;k++)
-	{
-		cs=cs+pts[k];
-	}
-	pts[5]=cs;
-	pts[6]=0x19;
-	CDC_Transmit_FS(pts, pts[1]);
+	cpack();
 }
 
 void fxUSB(uint8_t* buf, uint32_t t)
 {
 
-	if(buf[3]==0x21)
-	{
-		if(buf[4]==0x27)
-		{
-			q=1;
-		}else{
-			q=2;
-		}
-	}
 }
 /* USER CODE END 4 */
 
