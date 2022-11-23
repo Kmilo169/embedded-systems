@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <QSerialPort>
-#include <QTimer>
 
 namespace Ui {
 class Widget;
@@ -17,9 +16,6 @@ public:
     explicit Widget(QWidget *parent = nullptr);
     ~Widget();
 
-public slots:
-    void xx();
-
 private slots:
     void on_pushButton_2_clicked();
 
@@ -29,6 +25,12 @@ private slots:
 
     void on_horizontalSlider_sliderMoved(int position);
 
+    void on_pushButton_3_clicked();
+
+    void on_pushButton_4_clicked();
+
+    void on_pushButton_5_clicked();
+
 private:
     Ui::Widget *ui;
     QSerialPort *css=nullptr;
@@ -37,8 +39,8 @@ private:
     void initbarandpack();
     QString bc{"background-color: rgb("},g,c{","},f{")"};
     QByteArray buf;
-    QTimer *tim;
-    char pts[7];
+    char pts[5];
+    int contador=0;
 };
 
 #endif // WIDGET_H
