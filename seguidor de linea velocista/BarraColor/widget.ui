@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>880</width>
-    <height>474</height>
+    <width>765</width>
+    <height>389</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,8 +16,8 @@
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>50</x>
-     <y>360</y>
+     <x>20</x>
+     <y>290</y>
      <width>641</width>
      <height>81</height>
     </rect>
@@ -75,13 +75,6 @@
       </property>
      </widget>
     </item>
-    <item>
-     <widget class="QLabel" name="label_8">
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QWidget" name="layoutWidget">
@@ -89,7 +82,7 @@
     <rect>
      <x>20</x>
      <y>10</y>
-     <width>261</width>
+     <width>351</width>
      <height>74</height>
     </rect>
    </property>
@@ -132,8 +125,8 @@
   <widget class="QPushButton" name="pushButton_3">
    <property name="geometry">
     <rect>
-     <x>300</x>
-     <y>10</y>
+     <x>380</x>
+     <y>20</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -145,8 +138,8 @@
   <widget class="QPushButton" name="pushButton_4">
    <property name="geometry">
     <rect>
-     <x>380</x>
-     <y>10</y>
+     <x>460</x>
+     <y>20</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -158,8 +151,8 @@
   <widget class="QPushButton" name="pushButton_5">
    <property name="geometry">
     <rect>
-     <x>460</x>
-     <y>10</y>
+     <x>540</x>
+     <y>20</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -171,8 +164,8 @@
   <widget class="QWidget" name="layoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>790</x>
-     <y>70</y>
+     <x>610</x>
+     <y>120</y>
      <width>49</width>
      <height>148</height>
     </rect>
@@ -236,11 +229,11 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>730</x>
-     <y>50</y>
+     <x>550</x>
+     <y>100</y>
      <width>112</width>
      <height>15</height>
     </rect>
@@ -262,11 +255,11 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>730</x>
-     <y>70</y>
+     <x>550</x>
+     <y>120</y>
      <width>49</width>
      <height>148</height>
     </rect>
@@ -330,13 +323,13 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>20</x>
      <y>100</y>
-     <width>661</width>
-     <height>141</height>
+     <width>501</width>
+     <height>171</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -381,6 +374,51 @@
      </widget>
     </item>
    </layout>
+  </widget>
+  <widget class="QPushButton" name="pushButton_6">
+   <property name="geometry">
+    <rect>
+     <x>620</x>
+     <y>20</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Parar</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_31">
+   <property name="geometry">
+    <rect>
+     <x>390</x>
+     <y>50</y>
+     <width>361</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_8">
+   <property name="geometry">
+    <rect>
+     <x>670</x>
+     <y>290</y>
+     <width>80</width>
+     <height>79</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

@@ -67,10 +67,17 @@ typedef enum{
 	MOTOR_STANDBY=0,
 	MOTOR_F
 }MTRS;
+typedef enum{
+	OK,
+	ERR,
+	DIRECT
+}esp;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define maxadc 4095
+#define minadc 0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,11 +92,16 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
+UART_HandleTypeDef huart1;
+
 /* USER CODE BEGIN PV */
-volatile uint32_t timers[TTOTAL],maxv[8]={0},minv[8]={4095,4095,4095,4095,4095,4095,4095,4095};
-uint32_t adcs[9]={0};
-int ppp=0;
-uint8_t pts[50]={0},k=0,accion=0,m=0,j=0;
+esp ft=ERR;
+volatile uint32_t timers[TTOTAL];
+uint32_t adcs[9]={0},maxv[8]={0},minv[8]={4095,4095,4095,4095,4095,4095,4095,4095};
+float pen[8]={1,1,1,1,1,1,1,1},b[8]={0};
+int er=0,in=0,apli1=0,apli2=0;
+signed int pos=0,adcs2[8]={0},num=0,den=0;;
+uint8_t pts[50]={0},accion=0,m=0,j=0,w=0,n=0,z=0,a=0,ECO[]="ATE0\r\n",PN[]="AT\r\n",PN0[]="AT+CIPMODE=1\r\n",PN1[]="AT+CIPSTART=\"TCP\",\"192.168.137.1\",1616\r\n",PN2[]="AT+CIPSEND\r\n",PSTM[30],k=0, MSG[]="HOLA ",MSG1[]="ADIOS ";
 LEDS ledA=LED_STANDBY,ledB=LED_STANDBY;
 CAR hamilton=STANDBY;
 MTRS m1=MOTOR_STANDBY, m2=MOTOR_STANDBY;
@@ -103,9 +115,11 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 /*@retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY*/
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
+void conexionwifi();
 void initpack();
 void velocista();
 void controller_LEDS(uint8_t f1,uint8_t f2);
@@ -118,6 +132,9 @@ void controller_comm();
 void calibvalues(uint8_t k);
 void seguirlinea();
 void configpack(uint8_t* p);
+void normalizar();
+void fxUART();
+void correr();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -138,7 +155,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -158,6 +175,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM4_Init();
   MX_TIM2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   initpack();
   HAL_TIM_Base_Start_IT(&htim2); // Inicialización del TIM que interrumpe cada 1 ms
@@ -165,26 +183,24 @@ int main(void)
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3); //PWM motor 1
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //PWM motor 2
 
-  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_3,0); // MOTOR en 0
-  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_4,0); // MOTOR en 0
+  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_3,0);
+  __HAL_TIM_SET_COMPARE(&htim4,TIM_CHANNEL_4,0);// MOTOR en 0
   HAL_ADC_Start_DMA(&hadc1, adcs, 9);
   timers[T_STANDBY]=50;
+  timers[T_CALIB]=10000;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  //HAL_GPIO_TogglePin(LEDBLANCO_GPIO_Port,LEDBLANCO_Pin);
-	  //HAL_GPIO_TogglePin(LEDAZUL_GPIO_Port,LEDAZUL_Pin);
-
-	  //HAL_Delay(100);
 	  velocista();
+	 //conexionwifi();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-      /*   while(TIM4->CCR3<999)
+	/* while(TIM4->CCR3<999)
 	 	 {
 	 		 TIM4->CCR3=TIM4->CCR3+10;
 	 		 HAL_GPIO_TogglePin(LEDBLANCO_GPIO_Port,LEDBLANCO_Pin);
@@ -445,9 +461,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 8400;
+  htim4.Init.Prescaler = 14000;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 1000-1;
+  htim4.Init.Period = 200-1;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
@@ -476,6 +492,39 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -539,265 +588,398 @@ void initpack()
 	pts[2]=0x69;
 }
 
+void conexionwifi()
+{
+	switch(ft)
+		 {
+		 case OK:
+			 z++;
+			 ft=ERR;
+		 break;
+		 case ERR:
+			 switch(z)
+			 {
+			 case 0:
+				HAL_UART_Transmit(&huart1, ECO, sizeof(ECO),3);
+			 	HAL_UART_Receive(&huart1,PSTM,10,3);
+			 	if((PSTM[2]=='O')&&(PSTM[3]=='K'))
+			 	{
+			 		ft=OK;
+			 	}else if((PSTM[0]==0xFF)&&(PSTM[3]==0xF1)){
+			 		ft=DIRECT;
+			 	}
+			 	break;
+			 case 1:
+			 	HAL_UART_Transmit(&huart1,PN,sizeof(PN),3);
+			 	HAL_UART_Receive(&huart1,PSTM,10,3);
+			 	if((PSTM[2]=='O')&&(PSTM[3]=='K')) ft=OK;
+			 break;
+			 case 2:
+				 HAL_UART_Transmit(&huart1,PN0,sizeof(PN0),3);
+				 HAL_UART_Receive(&huart1,PSTM,10,3);
+				 if((PSTM[2]=='O')&&(PSTM[3]=='K')) ft=OK;
+			 break;
+			 case 3:
+				 HAL_UART_Transmit(&huart1,PN1,sizeof(PN1),3);
+				 HAL_UART_Receive(&huart1,PSTM,30,3);
+				 if((PSTM[0]=='A')||(PSTM[0]=='C')) ft=OK;
+			 break;
+			 case 4:
+				 HAL_UART_Transmit(&huart1,PN2,sizeof(PN2),3);
+				 HAL_UART_Receive(&huart1,PSTM,10,3);
+				 if((PSTM[2]=='O')&&(PSTM[3]=='K'))	ft=DIRECT;
+			 break;
+			 default:
+				 z=1;
+			 break;
+			 }
+		 break;
+		 case DIRECT:
+			 velocista();
+			 if(z!=0)
+			 		 {
+			 			 HAL_UART_Transmit(&huart1,MSG1,sizeof(MSG1),3);
+			 			 HAL_Delay(500);
+			 			 z--;
+			 		 }else{
+			 			 HAL_UART_Receive(&huart1,PSTM,10,3);
+			 			 if(PSTM[0]=='K')
+			 			 {
+			 				 HAL_UART_Transmit(&huart1,MSG,sizeof(MSG),3);
+			 				 HAL_GPIO_TogglePin(LEDAZULP_GPIO_Port,LEDAZULP_Pin);
+			 				 PSTM[0]='A';
+			 			 }
+			 		 }//*/
+		 break;
+		 }
+}
+
 void velocista()
 {
 	if(timers[T_BATTERY]==0)
-	{
-		timers[T_BATTERY]=900;
-		pts[3]=0x27;
-		pts[4]=0x96;
-		configpack(pts);
-	}
-	controller_comm();
-	switch(hamilton)
-	{
-	 case STANDBY:
-		 controller_LEDS(20,0);
-		 controller_PWM(0,0);
-		 if(j==0)
-		 {
-			 if(timers[T_STANDBY]==0)
+		{
+			timers[T_BATTERY]=900;
+			pts[3]=0x27;
+			pts[4]=0x96;
+			configpack(pts);
+		}//*/
+		controller_comm();
+		switch(hamilton)
+		{
+		 case STANDBY:
+			 controller_LEDS(20,0);
+			 controller_PWM(0,0);
+			 if(j==0)
 			 {
-			 	 timers[T_STANDBY]=1000;
-			 	 com1=Comm_STANDBY;
+				 if(timers[T_STANDBY]==0)
+				 {
+				 	 timers[T_STANDBY]=500;
+				 	 com1=Comm_STANDBY;
+				 }
 			 }
-		 }
-	 break;
-	 case MOTORS:
-		 controller_LEDS(5,10);
-		 switch(m)
-		 {
-		 case 0:
-			 controller_PWM(0, 1000);
 		 break;
-		 case 1:
-			 controller_PWM(1000, 0);
-		 break;
-		 case 2:
-			 controller_PWM(timers[T_MOTORS]/3,timers[T_MOTORS]/3);
-		 break;
-		 case 3:
-			 controller_PWM(timers[T_MOTORS]/3,1000-(timers[T_MOTORS]/3));
-		 break;
-		 }
-		 if(timers[T_MOTORS]==0)
-		 {
+		 case MOTORS:
+			 j=1;
+			 controller_LEDS(5,10);
 			 switch(m)
 			 {
-			  case 0:
-				  timers[T_MOTORS]=3000;
-				  m=1;
-			  break;
-			  case 1:
-				  timers[T_MOTORS]=3000;
-				  m=2;
-			  break;
-			  case 2:
-				  timers[T_MOTORS]=3000;
-				  m=3;
-			  break;
-			  case 3:
-				  hamilton=STANDBY;
-				  com1=Comm_MOTORS;
-			  break;
+			 case 0:
+				 controller_PWM(0, 1000);
+			 break;
+			 case 1:
+				 controller_PWM(1000, 0);
+			 break;
+			 case 2:
+				 controller_PWM(timers[T_MOTORS]/3,timers[T_MOTORS]/3);
+			 break;
+			 case 3:
+				 controller_PWM(timers[T_MOTORS]/3,1000-(timers[T_MOTORS]/3));
+			 break;
 			 }
-		 }
-	 break;
-	 case CALIB:
-		 if(timers[T_VALORES]==0)
-		 {
-			 com1=Comm_VALORES;
-			 timers[T_VALORES]=10;
-		 }
-		 controller_LEDS(2,20);
-		 controller_PWM(0,0);
-		 calibvalues(k);
-		 k++;
-		 if(k>=9) k=1;
-		 if(timers[T_CALIB]==0)
-		 {
-			hamilton=STANDBY;
-			com1=Comm_CALIB;
-		 }
-	 break;
-	 case RUN:
-		 controller_LEDS(77,1);
-		 seguirlinea();
-		 if(timers[T_Comm_RUN]==0)
-		 {
-			timers[T_Comm_RUN]=100;
-			com1=Comm_RUN;
-		 }
-		 if(timers[T_RUN]==0)
-		 {
-			 hamilton=STANDBY;
-			 com1=Comm_RUN_F;
-		 }
-	 break;
-	}//*/
-}
-
-void controller_comm()
-{
-	switch(com1)
-	{
-		case Comm_CLOSE:
-			accion=0;
-		break;
-		case Comm_STANDBY:
-			accion=1;
-			com1=Comm_CLOSE;
-		break;
-		case Comm_CALIB:
-			accion=2;
-			com1=Comm_CLOSE;
-		break;
-		case Comm_MOTORS:
-			accion=3;
-			com1=Comm_CLOSE;
-		break;
-		case Comm_RUN:
-			accion=4;
-			com1=Comm_CLOSE;
-		break;
-		case Comm_RUN_F:
-			accion=5;
-			com1=Comm_CLOSE;
-		break;
-		case Comm_VALORES:
-			accion=6;
-			com1=Comm_CLOSE;
-		break;
+			 if(timers[T_MOTORS]==0)
+			 {
+				 switch(m)
+				 {
+				  case 0:
+					  timers[T_MOTORS]=3000;
+					  m=1;
+				  break;
+				  case 1:
+					  timers[T_MOTORS]=3000;
+					  m=2;
+				  break;
+				  case 2:
+					  timers[T_MOTORS]=3000;
+					  m=3;
+				  break;
+				  case 3:
+					  hamilton=STANDBY;
+					  com1=Comm_MOTORS;
+				  break;
+				 }
+			 }
+		 break;
+		 case CALIB:
+			 j=1;
+			 if(timers[T_VALORES]==0)
+			 {
+				 com1=Comm_VALORES;
+				 timers[T_VALORES]=8;
+			 }
+			 controller_LEDS(2,20);
+			 controller_PWM(0,0);
+			 calibvalues(k);
+			 k++;
+			 if(k>=9) k=1;
+			 if(timers[T_CALIB]==0)
+			 {
+				normalizar();
+				com1=Comm_CALIB;
+			 }
+		 break;
+		 case RUN:
+			 j=1;
+			 controller_LEDS(77,1);
+			 //correr();
+			 seguirlinea();
+			 if(timers[T_Comm_RUN]==0)
+			 {
+				timers[T_Comm_RUN]=100;
+				com1=Comm_RUN;
+			 }
+			 if(timers[T_RUN]==0)
+			 {
+				 hamilton=STANDBY;
+				 com1=Comm_RUN_F;
+			 }
+		 break;
+		}//*/
+		fxUART();
 	}
-	if(accion==0)
-	{}else{
-		switch(accion)
+
+	void controller_comm()
+	{
+		switch(com1)
 		{
-			case 1:
-				pts[3]=0x22;
-				pts[4]=0x00;
+			case Comm_CLOSE:
+				accion=0;
 			break;
-			case 2:
-				pts[3]=0x33;
-				pts[4]=0x96;
+			case Comm_STANDBY:
+				accion=1;
+				com1=Comm_CLOSE;
 			break;
-			case 3:
-				pts[3]=0x44;
-				pts[4]=0x00;
+			case Comm_CALIB:
+				accion=2;
+				com1=Comm_CLOSE;
 			break;
-			case 4:
-				pts[3]=0x55;
-				pts[4]=0x00;
+			case Comm_MOTORS:
+				accion=3;
+				com1=Comm_CLOSE;
 			break;
-			case 5:
-				pts[3]=0x66;
-				pts[4]=0x00;
+			case Comm_RUN:
+				accion=4;
+				com1=Comm_CLOSE;
 			break;
-			case 6:
-				pts[3]=0x77;
-				pts[4]=0x96;
+			case Comm_RUN_F:
+				accion=5;
+				com1=Comm_CLOSE;
+			break;
+			case Comm_VALORES:
+				accion=6;
+				com1=Comm_CLOSE;
 			break;
 		}
-		configpack(pts);
-	}
-}
-
-void configpack(uint8_t* p)
-{
-	if(p[4]==0x00)
-	{
-		p[5]=0x99;
-		p[6]=0x19;
-		p[1]=0x07;
-	}else{
-		switch(p[3])
-		{
-		case 0x33:
-			p[5]=0xAA;
-			p[6]=(maxv[0]>>8)&0xFF;
-			p[7]=(maxv[0])&0xFF;
-			p[8]=(maxv[1]>>8)&0xFF;
-			p[9]=(maxv[1])&0xFF;
-			p[10]=(maxv[2]>>8)&0xFF;
-			p[11]=(maxv[2])&0xFF;
-			p[12]=(maxv[3]>>8)&0xFF;
-			p[13]=(maxv[3])&0xFF;
-			p[14]=(maxv[4]>>8)&0xFF;
-			p[15]=(maxv[4])&0xFF;
-			p[16]=(maxv[5]>>8)&0xFF;
-			p[17]=(maxv[5])&0xFF;
-			p[18]=(maxv[6]>>8)&0xFF;
-			p[19]=(maxv[6])&0xFF;
-			p[20]=(maxv[7]>>8)&0xFF;
-			p[21]=(maxv[7])&0xFF;
-			p[22]=0XBB;
-			p[23]=(minv[0]>>8)&0xFF;
-			p[24]=(minv[0])&0xFF;
-			p[25]=(minv[1]>>8)&0xFF;
-			p[26]=(minv[1])&0xFF;
-			p[27]=(minv[2]>>8)&0xFF;
-			p[28]=(minv[2])&0xFF;
-			p[29]=(minv[3]>>8)&0xFF;
-			p[30]=(minv[3])&0xFF;
-			p[31]=(minv[4]>>8)&0xFF;
-			p[32]=(minv[4])&0xFF;
-			p[33]=(minv[5]>>8)&0xFF;
-			p[34]=(minv[5])&0xFF;
-			p[35]=(minv[6]>>8)&0xFF;
-			p[36]=(minv[6])&0xFF;
-			p[37]=(minv[7]>>8)&0xFF;
-			p[38]=(minv[7])&0xFF;
-			p[39]=0x99;
-			p[40]=0x19;
-			p[1]=0x29;
-		break;
-		case 0x77:
-			p[5]=(adcs[1]>>8)&0xFF;
-			p[6]=(adcs[1])&0xFF;
-			p[7]=(adcs[2]>>8)&0xFF;
-			p[8]=(adcs[2])&0xFF;
-			p[9]=(adcs[3]>>8)&0xFF;
-			p[10]=(adcs[3])&0xFF;
-			p[11]=(adcs[4]>>8)&0xFF;
-			p[12]=(adcs[4])&0xFF;
-			p[13]=(adcs[5]>>8)&0xFF;
-			p[14]=(adcs[5])&0xFF;
-			p[15]=(adcs[6]>>8)&0xFF;
-			p[16]=(adcs[6])&0xFF;
-			p[17]=(adcs[7]>>8)&0xFF;
-			p[18]=(adcs[7])&0xFF;
-			p[19]=(adcs[8]>>8)&0xFF;
-			p[20]=(adcs[8])&0xFF;
-			p[21]=0x99;
-			p[22]=0x19;
-			p[1]=0x17;
-		break;
-		case 0x27:
-			p[5]=(adcs[0]>>8)&0xFF;
-			p[6]=(adcs[0])&0xFF;
-			p[7]=0x99;
-			p[8]=0x19;
-			p[1]=0x09;
-		break;
+		if(accion==0)
+		{}else{
+			switch(accion)
+			{
+				case 1:
+					pts[3]=0x22;
+					pts[4]=0x00;
+				break;
+				case 2:
+					pts[3]=0x33;
+					pts[4]=0x96;
+				break;
+				case 3:
+					pts[3]=0x44;
+					pts[4]=0x00;
+				break;
+				case 4:
+					pts[3]=0x55;
+					pts[4]=0x00;
+				break;
+				case 5:
+					pts[3]=0x66;
+					pts[4]=0x96;
+				break;
+				case 6:
+					pts[3]=0x77;
+					pts[4]=0x96;
+				break;
+			}
+			configpack(pts);
 		}
 	}
-	CDC_Transmit_FS(p,p[1]);
+
+	void configpack(uint8_t* p)
+	{
+		if(p[4]==0x00)
+		{
+			p[5]=0x99;
+			p[6]=0x19;
+			p[1]=0x07;
+		}else{
+			switch(p[3])
+			{
+			case 0x33:
+				p[5]=0xAA;
+				p[6]=(maxv[0]>>8)&0xFF;
+				p[7]=(maxv[0])&0xFF;
+				p[8]=(maxv[1]>>8)&0xFF;
+				p[9]=(maxv[1])&0xFF;
+				p[10]=(maxv[2]>>8)&0xFF;
+				p[11]=(maxv[2])&0xFF;
+				p[12]=(maxv[3]>>8)&0xFF;
+				p[13]=(maxv[3])&0xFF;
+				p[14]=(maxv[4]>>8)&0xFF;
+				p[15]=(maxv[4])&0xFF;
+				p[16]=(maxv[5]>>8)&0xFF;
+				p[17]=(maxv[5])&0xFF;
+				p[18]=(maxv[6]>>8)&0xFF;
+				p[19]=(maxv[6])&0xFF;
+				p[20]=(maxv[7]>>8)&0xFF;
+				p[21]=(maxv[7])&0xFF;
+				p[22]=0XBB;
+				p[23]=(minv[0]>>8)&0xFF;
+				p[24]=(minv[0])&0xFF;
+				p[25]=(minv[1]>>8)&0xFF;
+				p[26]=(minv[1])&0xFF;
+				p[27]=(minv[2]>>8)&0xFF;
+				p[28]=(minv[2])&0xFF;
+				p[29]=(minv[3]>>8)&0xFF;
+				p[30]=(minv[3])&0xFF;
+				p[31]=(minv[4]>>8)&0xFF;
+				p[32]=(minv[4])&0xFF;
+				p[33]=(minv[5]>>8)&0xFF;
+				p[34]=(minv[5])&0xFF;
+				p[35]=(minv[6]>>8)&0xFF;
+				p[36]=(minv[6])&0xFF;
+				p[37]=(minv[7]>>8)&0xFF;
+				p[38]=(minv[7])&0xFF;
+				p[39]=0x99;
+				p[40]=0x19;
+				p[1]=0x29;
+			break;
+			case 0x66:
+				p[5]=n;
+				p[6]=0x99;
+				p[7]=0x19;
+				p[1]=0x08;
+			break;
+			case 0x77:
+				p[5]=(adcs[1]>>8)&0xFF;
+				p[6]=(adcs[1])&0xFF;
+				p[7]=(adcs[2]>>8)&0xFF;
+				p[8]=(adcs[2])&0xFF;
+				p[9]=(adcs[3]>>8)&0xFF;
+				p[10]=(adcs[3])&0xFF;
+				p[11]=(adcs[4]>>8)&0xFF;
+				p[12]=(adcs[4])&0xFF;
+				p[13]=(adcs[5]>>8)&0xFF;
+				p[14]=(adcs[5])&0xFF;
+				p[15]=(adcs[6]>>8)&0xFF;
+				p[16]=(adcs[6])&0xFF;
+				p[17]=(adcs[7]>>8)&0xFF;
+				p[18]=(adcs[7])&0xFF;
+				p[19]=(adcs[8]>>8)&0xFF;
+				p[20]=(adcs[8])&0xFF;
+				p[21]=0x99;
+				p[22]=0x19;
+				p[1]=0x17;
+			break;
+			case 0x27:
+				p[5]=(adcs[0]>>8)&0xFF;
+				p[6]=(adcs[0])&0xFF;
+				p[7]=0x99;
+				p[8]=0x19;
+				p[1]=0x09;
+			break;
+			}
+		}
+		//HAL_UART_Transmit(&huart1, p, p[1],3);
+		CDC_Transmit_FS(p,p[1]);
+}
+
+void correr()
+{
+		num=(((float)adcs[8])*(-2000))-(((float)adcs[6])*(-1000))+(((float)adcs[4])*(1000))+(((float)adcs[2])*(2000));
+		den=((-1)*((float)adcs[8]))+((-1)*((float)adcs[6]))+(((float)adcs[4]))+(((float)adcs[2]));
+		if(den==0)
+		{
+			den=1;
+		}
+		pos=(int)(num/den);
+		er=(0)-((int)pos);
+		in=in+er;
+		if((in==(-20000))||(in==20000))
+		{
+			controller_PWM(0,0);
+		}
+		if(pos<0)
+		{
+			apli1=((-1)*(pos/17.5))-er;
+			apli2=(200)-((-1)*(pos/17.5))-er;
+		}else{
+			if(pos==0)
+			{
+				apli1=200;
+				apli2=200;
+			}
+			else{
+				apli2=((-1)*(pos/17.5))-er;
+				apli1=(200)-((-1)*(pos/17.5))-er;
+			}
+		}
+		controller_PWM(apli1, apli2);
 }
 
 void seguirlinea()
 {
-	ppp=((-adcs[2])*0.025)+((-adcs[3])*0.05)+((-adcs[4])*0.1)+((adcs[5])*0.65)+((adcs[6])*0.1)+((adcs[7])*0.05)+((adcs[8])*0.025);
-	if(ppp<0)
-	{
-		controller_PWM(1000+(ppp/4.1),(-(ppp))/4.1);
-	}else{
-		if(ppp==0)
-		{
-			controller_PWM(1000,1000);
-		}else{
-			controller_PWM(ppp/4.1,1000-ppp/4.1);
-		}
-	}
+		if((adcs[8]>3500)&&(adcs[5]<3500)&&(adcs[2]>3500)){ // LINEA RECTA 1 0 1
+				apli1=70;
+				apli2=70;
+			}
+		else if((adcs[8]<3500)&&(adcs[5]>3500)&&(adcs[2]>3500)){ // IZQUIERDOS EN NEGRO 0 1 1
+				controller_PWM(0,0);
+				apli1=0;
+				apli2=70;
+			}
+		else if((adcs[8]>3500)&&(adcs[5]>3500)&&(adcs[2]<3500)){ // DERECHOS EN NEGRO 1 1 0
+				controller_PWM(0,0);
+				apli1=70;
+				apli2=0;
+			}
+		else if((adcs[8]<3500)&&(adcs[5]<2500)&&(adcs[2]>3500)){ // IZQUIERDOS Y CENTRO EN NEGRO 0 0 1
+				controller_PWM(0,0);
+				apli1=0;
+				apli2=70;
+			}
+		else if((adcs[8]>3500)&&(adcs[5]<3500)&&(adcs[2]<2500)){ // DERECHOS Y CENTRO EN NEGRO 1 0 0
+				controller_PWM(0,0);
+				apli1=70;
+				apli2=0;
+			}
+		else if((adcs[8]>3500)&&(adcs[5]<3500)&&(adcs[2]<3500)){ // TODO EN NEGRO 0 0 0
+				apli1=70;
+				apli2=70;
+			}
+		else if((adcs[8]>3500)&&(adcs[5]<3500)&&(adcs[2]<3500)){ // TODO EN NEGRO 0 0 0
+				apli1=apli1;
+				apli2=apli2;
+				n++;
+			}
+			controller_PWM(apli1,apli2);
 }
 
 void controller_LEDS(uint8_t f1,uint8_t f2)
@@ -940,31 +1122,40 @@ void calibvalues(uint8_t k)
 	}
 }
 
-
-void fxUSB(uint8_t* buf, uint32_t t)
+void normalizar()
 {
-	j=1;
-	switch(buf[2])
+	for(w=0;w<8;w++)
 	{
-		case 0x22:
-			hamilton=MOTORS;
-			timers[T_MOTORS]=3000;
-			m=0;
-		break;
-		case 0x33:
-			hamilton=CALIB;
-			timers[T_CALIB]=15777;
-			k=1;
-		break;
-		case 0x44:
-			hamilton=RUN;
-			timers[T_RUN]=20050;
-			timers[T_Comm_RUN]=100;
-		break;
-		case 0x55:
-			hamilton=STANDBY;
-		break;
+		pen[w]=((maxadc-minadc)/((float)(maxv[w]-minv[w])));
+		b[w]=((minadc)-((pen[w])*((float)minv[w])));
 	}
+}
+
+void fxUART()
+{
+	HAL_UART_Receive(&huart1,PSTM,20,3);
+	switch(PSTM[2])
+		{
+			case 0x22:
+				hamilton=MOTORS;
+				timers[T_MOTORS]=3000;
+				m=0;
+			break;
+			case 0x33:
+				hamilton=CALIB;
+				timers[T_CALIB]=15777;
+				k=1;
+			break;
+			case 0x44:
+				hamilton=RUN;
+				timers[T_RUN]=450050;
+				timers[T_Comm_RUN]=100;
+			break;
+			case 0x55:
+				hamilton=STANDBY;
+			break;
+		}
+	PSTM[2]=0x99;
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -973,6 +1164,36 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	for(k=0;k<TTOTAL;k++)
 	{
 		if(timers[k]!=0) timers[k]--;
+	}
+}
+
+
+void fxUSB(uint8_t* buf, uint32_t t)
+{
+	j=1;
+	switch(buf[2])
+	{
+		case 0x22:
+			if(a==0)
+			{
+				hamilton=MOTORS;
+				timers[T_MOTORS]=3000;
+				m=0;
+			}
+		break;
+		case 0x33:
+			hamilton=CALIB;
+			timers[T_CALIB]=15777;
+			k=1;
+		break;
+		case 0x44:
+			hamilton=RUN;
+			timers[T_RUN]=45050;
+			timers[T_Comm_RUN]=100;
+		break;
+		case 0x55:
+			hamilton=STANDBY;
+		break;
 	}
 }
 
